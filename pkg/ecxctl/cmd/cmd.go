@@ -65,9 +65,7 @@ var (
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
+	// Define base commands
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.ecxctl.yaml)")
 	rootCmd.PersistentFlags().BoolVar(&globalFlags.Debug, "debug", false, "enable client-side debug logging")
 
@@ -79,10 +77,6 @@ func init() {
 	// User needs to create an API ID and Secret at Equinix developer portal https://developer.equinix.com
 	rootCmd.PersistentFlags().StringVar(&globalFlags.EquinixAPIId, "equinix-api-id", os.Getenv("EQUINIX_API_ID"), "Equinix API Application ID")
 	rootCmd.PersistentFlags().StringVar(&globalFlags.EquinixAPISecret, "equinix-api-secret", os.Getenv("EQUINIX_API_SECRET"), "Equinix API Application Secret")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
 	// Bind viper config flags
 	viper.BindPFlag("ecx-api-host", rootCmd.PersistentFlags().Lookup("ecx-api-host"))

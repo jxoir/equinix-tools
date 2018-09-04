@@ -41,7 +41,12 @@ the install instructions for Go](http://golang.org/doc/install.html).
 
 To install cli, simply run:
 ```
-$ go get github.com/jxoir/equinix-tools
+$ go get github.com/jxoir/equinix-tools/...
+```
+
+Example use:
+```
+$ ecxctl connections list
 ```
 
 Make sure your `PATH` includes the `$GOPATH/bin` directory so your commands can
