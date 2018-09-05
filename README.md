@@ -11,9 +11,9 @@ An **UNOFFICIAL** GO CLI for ECX and ECP Tested with Go 1.10+
 
 :warning: WARNING: This CLI is **NOT official**, What does this mean?
 
-* There is no formal Equinix [support] (https://developer.equinix.com) for this SDK at this point
+* There is no formal Equinix [support] for this CLI at this point
 * Bugs may or may not get fixed
-* Not all SDK features may be implemented and implemented features may be buggy or incorrect
+* Not all API features may be implemented and implemented features may be buggy or incorrect
 * Only implements Buyer API _for now_
 
 - [ ] ECX CLI
