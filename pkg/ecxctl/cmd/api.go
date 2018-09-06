@@ -25,23 +25,69 @@ import (
 	"github.com/jxoir/go-ecxfabric/models"
 )
 
-var defaultGrantType = "client_credentials"
-
-// NewAPIClient returns an instantiated client with token
-func NewAPIClient(params *EquinixAPIConnectionParams, endpoint string) *EcxConnection {
-	ecxClient := &EcxConnection{
-		Params: params,
-	}
-	err := ecxClient.Connect(endpoint)
-	if err != nil {
-		log.Fatal("There was a problem connecting to endpoint " + endpoint)
-		log.Fatal(err)
-	}
-	return ecxClient
+// EquinixAPIParams struct for generic Equinix params
+type EquinixAPIParams struct {
+	AppID        string
+	AppSecret    string
+	GrantType    string
+	UserName     string
+	UserPassword string
+	Endpoint     string
 }
 
-// Connect to api endpoint
-func (ec *EcxConnection) Connect(endpoint string) error {
+// EquinixAPIClient containing structure for Client, params and apitoken
+// TODO: Implement token refresh
+type EquinixAPIClient struct {
+	Client   *apiclient.GoEcxfabric
+	Params   *EquinixAPIParams
+	apiToken runtime.ClientAuthInfoWriter
+}
+
+const (
+	// ECX declare ECX API type
+	ECX = iota
+)
+
+// APIHandler implements common Equinix API handlers commands
+type APIHandler interface {
+	Authenticate() error
+	GetToken() (runtime.ClientAuthInfoWriter, error)
+}
+
+var defaultGrantType = "client_credentials"
+
+// NewEcxAPIClient returns an instantiated ECX client with token
+func NewEcxAPIClient(params *EquinixAPIParams, endpoint string) *EquinixAPIClient {
+	// create the transport
+	transport := httptransport.New(endpoint, "", nil)
+
+	// create the API client, with the transport
+	ecxAPIClient := apiclient.New(transport, strfmt.Default)
+
+	equinixAPIClient := &EquinixAPIClient{
+		Params: params,
+		Client: ecxAPIClient,
+	}
+
+	return equinixAPIClient
+}
+
+// GetToken returns local token, if token doesn't exists tries to authenticate and retrieve token
+func (ec *EquinixAPIClient) GetToken() (runtime.ClientAuthInfoWriter, error) {
+	if ec.apiToken == nil {
+
+		err := ec.Authenticate()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return ec.apiToken, nil
+
+}
+
+// Authenticate tries to authenticate and stores token from remote endpoint
+func (ec *EquinixAPIClient) Authenticate() error {
 	// set default parameters
 	if ec.Params.AppID == "" {
 		log.Fatal("EQUINIX_API_ID not set")
@@ -49,14 +95,12 @@ func (ec *EcxConnection) Connect(endpoint string) error {
 	if ec.Params.AppSecret == "" {
 		log.Fatal("EQUINIX_API_SECRET not set")
 	}
+	if ec.Params.Endpoint == "" {
+		log.Fatal("ECX_API_HOST not specified")
+	}
 	if ec.Params.GrantType == "" {
 		ec.Params.AppSecret = defaultGrantType
 	}
-	// create the transport
-	transport := httptransport.New(endpoint, "", nil)
-
-	// create the API client, with the transport
-	ecxAPIClient := apiclient.New(transport, strfmt.Default)
 
 	accessTokenParams := access_token.NewGetAccessTokenParams()
 	accessTokenRequest := models.OAuthRequest{
@@ -69,6 +113,7 @@ func (ec *EcxConnection) Connect(endpoint string) error {
 
 	if globalFlags.Debug {
 		log.Println("User:" + ec.Params.UserName)
+		log.Println("Endpoint:" + ec.Params.Endpoint)
 		log.Println("AppId:" + ec.Params.AppID)
 		log.Println("Grant Type:" + ec.Params.GrantType)
 	}
@@ -76,11 +121,12 @@ func (ec *EcxConnection) Connect(endpoint string) error {
 	accessTokenParams.SetRequest(&accessTokenRequest)
 	accessTokenParams.Authorization = "Bearer"
 
-	accessToken, err := ecxAPIClient.AccessToken.GetAccessToken(accessTokenParams, nil)
+	accessToken, err := ec.Client.AccessToken.GetAccessToken(accessTokenParams, nil)
 	if err != nil {
-
-		log.Fatal("Failed to retrieve token...")
-		log.Fatal(err)
+		if globalFlags.Debug {
+			log.Println("Failed to retrieve token...")
+		}
+		return err
 	}
 
 	if globalFlags.Debug {
@@ -89,25 +135,7 @@ func (ec *EcxConnection) Connect(endpoint string) error {
 
 	bearerTokenAuth := httptransport.BearerToken(accessToken.Payload.AccessToken)
 
-	ec.Client = ecxAPIClient
 	ec.apiToken = bearerTokenAuth
 
 	return nil
-}
-
-// EquinixAPIConnectionParams struct for generic Equinix params
-type EquinixAPIConnectionParams struct {
-	AppID        string
-	AppSecret    string
-	GrantType    string
-	UserName     string
-	UserPassword string
-}
-
-// EcxClient containing structure for Client, params and apitoken
-// TODO: Implement token refresh
-type EcxConnection struct {
-	Client   *apiclient.GoEcxfabric
-	Params   *EquinixAPIConnectionParams
-	apiToken runtime.ClientAuthInfoWriter
 }

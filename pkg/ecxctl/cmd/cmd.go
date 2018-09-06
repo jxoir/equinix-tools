@@ -47,7 +47,17 @@ var versionCmd = &cobra.Command{
 	},
 }
 
-var EcxAPIClient *EcxConnection
+// EcxAPIClient instance of EquinixAPI to ECX
+var EcxAPIClient *EquinixAPIClient
+
+// ConnectionsAPIClient Connections interface
+var ConnectionsAPIClient *ECXConnectionsAPI
+
+// MetrosAPIClient Metros interface
+var MetrosAPIClient *ECXMetrosAPI
+
+// PortsAPIClient Ports interface
+var PortsAPIClient *ECXPortsAPI
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
@@ -88,15 +98,19 @@ func init() {
 	rootCmd.AddCommand(versionCmd)
 
 	// Setup api client and params
-	clientParams := &EquinixAPIConnectionParams{
+	clientParams := &EquinixAPIParams{
 		AppID:        globalFlags.EquinixAPIId,
 		AppSecret:    globalFlags.EquinixAPISecret,
 		GrantType:    "client_credentials",
 		UserName:     globalFlags.UserName,
 		UserPassword: globalFlags.UserPassword,
+		Endpoint:     globalFlags.EcxAPIHost,
 	}
-	EcxAPIClient = NewAPIClient(clientParams, globalFlags.EcxAPIHost)
-
+	// Initialize Equinix Client
+	EcxAPIClient = NewEcxAPIClient(clientParams, globalFlags.EcxAPIHost)
+	ConnectionsAPIClient = NewECXConnectionsAPI(EcxAPIClient)
+	MetrosAPIClient = NewECXMetrosAPI(EcxAPIClient)
+	PortsAPIClient = NewECXPortsAPI(EcxAPIClient)
 }
 
 // initConfig reads in config file and ENV variables if set.
