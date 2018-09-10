@@ -79,6 +79,11 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.ecxctl.yaml)")
 	rootCmd.PersistentFlags().BoolVar(&globalFlags.Debug, "debug", false, "enable client-side debug logging")
 
+	rootCmd.PersistentFlags().StringVar(&globalFlags.PlaygroundToken, "playground-token", "", "Equinix Developer Playground Token (will disable API/SECRET authentication)")
+	rootCmd.PersistentFlags().StringVar(&globalFlags.PlaygroundAPIEndpoint, "playground-endpoint", "playgroundapi.equinix.com", "Equinix Developer Playground endpoint")
+
+	rootCmd.PersistentFlags().BoolVar(&globalFlags.NoSSL, "ignore-ssl", false, "Don't verify server SSL **INSECURE**")
+
 	rootCmd.PersistentFlags().StringVar(&globalFlags.EcxAPIHost, "ecx-api-host", os.Getenv("ECX_API_HOST"), "ECX API endpoint")
 	rootCmd.PersistentFlags().StringVar(&globalFlags.UserName, "user", os.Getenv("ECX_API_USER"), "portal username")
 	rootCmd.PersistentFlags().StringVar(&globalFlags.UserPassword, "password", os.Getenv("ECX_API_USER_PASSWORD"), "portal password")
@@ -97,20 +102,6 @@ func init() {
 
 	rootCmd.AddCommand(versionCmd)
 
-	// Setup api client and params
-	clientParams := &EquinixAPIParams{
-		AppID:        globalFlags.EquinixAPIId,
-		AppSecret:    globalFlags.EquinixAPISecret,
-		GrantType:    "client_credentials",
-		UserName:     globalFlags.UserName,
-		UserPassword: globalFlags.UserPassword,
-		Endpoint:     globalFlags.EcxAPIHost,
-	}
-	// Initialize Equinix Client
-	EcxAPIClient = NewEcxAPIClient(clientParams, globalFlags.EcxAPIHost)
-	ConnectionsAPIClient = NewECXConnectionsAPI(EcxAPIClient)
-	MetrosAPIClient = NewECXMetrosAPI(EcxAPIClient)
-	PortsAPIClient = NewECXPortsAPI(EcxAPIClient)
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -136,5 +127,34 @@ func initConfig() {
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
+	}
+
+	initAPIClient()
+
+}
+
+func initAPIClient() {
+	// Setup api client and params
+
+	// Initialize Equinix Client
+	if EcxAPIClient == nil {
+		if globalFlags.PlaygroundToken != "" {
+			// Set-up playground environment
+			globalFlags.EcxAPIHost = globalFlags.PlaygroundAPIEndpoint
+		}
+		clientParams := &EquinixAPIParams{
+			AppID:           globalFlags.EquinixAPIId,
+			AppSecret:       globalFlags.EquinixAPISecret,
+			GrantType:       "client_credentials",
+			UserName:        globalFlags.UserName,
+			UserPassword:    globalFlags.UserPassword,
+			Endpoint:        globalFlags.EcxAPIHost,
+			PlaygroundToken: globalFlags.PlaygroundToken,
+		}
+
+		EcxAPIClient = NewEcxAPIClient(clientParams, globalFlags.EcxAPIHost, globalFlags.NoSSL)
+		ConnectionsAPIClient = NewECXConnectionsAPI(EcxAPIClient)
+		MetrosAPIClient = NewECXMetrosAPI(EcxAPIClient)
+		PortsAPIClient = NewECXPortsAPI(EcxAPIClient)
 	}
 }
