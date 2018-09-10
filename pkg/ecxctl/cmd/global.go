@@ -20,7 +20,11 @@ type GlobalFlags struct {
 	UserPassword           string
 	APICredentialGrantType string
 	EcxAPIHost             string
-	Debug                  bool
+	PlaygroundToken        string
+	PlaygroundAPIEndpoint  string
+
+	Debug bool
+	NoSSL bool
 
 	EquinixAPISecret string
 	EquinixAPIId     string

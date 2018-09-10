@@ -19,12 +19,21 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/jxoir/go-ecxfabric/client/connections"
+	apiconnections "github.com/jxoir/go-ecxfabric/client/connections"
 
 	"github.com/spf13/cobra"
 )
 
-// metrosCmd represents the metros command
+type ConnectionsAPIHandler interface {
+	GetByUUID(uuid string) (*apiconnections.GetConnectionByUUIDUsingGETOK, error)
+	GetAllBuyerConnections() (*apiconnections.GetAllBuyerConnectionsUsingGETOK, error)
+}
+
+type ECXConnectionsAPI struct {
+	*EquinixAPIClient
+}
+
+// connectionsCmd represents the metros command
 var connectionsCmd = &cobra.Command{
 	Use:   "connections",
 	Short: "Operations related to ECX connections (buyer)",
@@ -47,33 +56,21 @@ func init() {
 	rootCmd.AddCommand(connectionsCmd)
 	connectionsCmd.AddCommand(connectionsListCmd)
 	connectionsCmd.AddCommand(connectionsGetCmd)
+}
 
+// NewECXConnectionsAPI returns instantiated ECXConnectionsAPI struct
+func NewECXConnectionsAPI(equinixAPIClient *EquinixAPIClient) *ECXConnectionsAPI {
+	return &ECXConnectionsAPI{equinixAPIClient}
 }
 
 func connectionsListCommand(cmd *cobra.Command, args []string) {
-
-	if globalFlags.Debug {
-		log.Println("Listing connections...")
-	}
-
-	connectionsOK, _, err := EcxAPIClient.Client.Connections.GetAllBuyerConnectionsUsingGET(nil, EcxAPIClient.apiToken)
-	if err != nil {
-		switch t := err.(type) {
-		default:
-			log.Fatal(err)
-		case *connections.GetAllBuyerConnectionsUsingGETBadRequest:
-			for _, getconnerrors := range t.Payload {
-				fmt.Println(getconnerrors.ErrorMessage)
-			}
-		}
-	}
-
+	connList, err := ConnectionsAPIClient.GetAllBuyerConnections()
+	fmt.Println(connList)
 	if err != nil {
 		log.Fatal(err)
-	}
-	if connectionsOK != nil {
-		fmt.Printf("Total connections: %v", connectionsOK.Payload.TotalCount)
-		for _, connection := range connectionsOK.Payload.Content {
+	} else {
+		fmt.Printf("Total connections: %v", connList.Payload.TotalCount)
+		for _, connection := range connList.Payload.Content {
 			connRes, _ := json.MarshalIndent(connection, "", "    ")
 			fmt.Println(string(connRes))
 		}
@@ -81,34 +78,70 @@ func connectionsListCommand(cmd *cobra.Command, args []string) {
 }
 
 func connectionsGetByUUIDCommand(cmd *cobra.Command, args []string) {
-	params := connections.NewGetConnectionByUUIDUsingGETParams()
-
 	for _, uuid := range args {
 		if globalFlags.Debug {
 			log.Println("Get connection:" + uuid)
 		}
-
-		params.ConnID = uuid
-
-		connectionOK, connectionNC, err := EcxAPIClient.Client.Connections.GetConnectionByUUIDUsingGET(params, EcxAPIClient.apiToken)
+		conn, err := ConnectionsAPIClient.GetByUUID(uuid)
 		if err != nil {
-			switch t := err.(type) {
-			default:
-				log.Fatal(err)
-			case *connections.GetConnectionByUUIDUsingGETBadRequest:
-				for _, getconnerrors := range t.Payload {
-					fmt.Println(getconnerrors.ErrorMessage + ":" + uuid)
-				}
-			}
-		}
-
-		if connectionOK != nil {
-			// for now just print the Marshal version of the payload but we need to create an output transformation
-			// TODO: custom formatter
-			connRes, _ := json.MarshalIndent(connectionOK, "", "    ")
+			log.Fatal(err)
+		} else {
+			connRes, _ := json.MarshalIndent(conn, "", "    ")
 			fmt.Println(string(connRes))
-		} else if connectionNC != nil {
-			fmt.Println("Connection " + uuid + " not found")
 		}
 	}
+}
+
+// GetAllBuyerConnections returns array of GetAllBuyerConnectionsUsingGETOK with list of customer connections
+func (m *ECXConnectionsAPI) GetAllBuyerConnections() (*apiconnections.GetAllBuyerConnectionsUsingGETOK, error) {
+	token, err := m.GetToken()
+	if err != nil {
+		log.Fatal(err)
+	}
+	connectionsOK, _, err := m.Client.Connections.GetAllBuyerConnectionsUsingGET(nil, token)
+	if err != nil {
+		switch t := err.(type) {
+		default:
+			log.Fatal(err)
+		case *apiconnections.GetAllBuyerConnectionsUsingGETBadRequest:
+			for _, getconnerrors := range t.Payload {
+				fmt.Println(getconnerrors.ErrorMessage)
+				return nil, err
+			}
+		}
+	}
+
+	return connectionsOK, nil
+
+}
+
+// GetByUUID get connection by uuid
+func (m *ECXConnectionsAPI) GetByUUID(uuid string) (*apiconnections.GetConnectionByUUIDUsingGETOK, error) {
+	params := apiconnections.NewGetConnectionByUUIDUsingGETParams()
+	params.ConnID = uuid
+
+	token, err := m.GetToken()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	connectionOK, _, err := m.Client.Connections.GetConnectionByUUIDUsingGET(params, token)
+	if err != nil {
+		switch t := err.(type) {
+		default:
+			return nil, err
+		case *apiconnections.GetConnectionByUUIDUsingGETBadRequest:
+			for _, getconnerrors := range t.Payload {
+				fmt.Println(getconnerrors.ErrorMessage + ":" + uuid)
+				return nil, err
+			}
+		}
+	}
+
+	if connectionOK != nil {
+		return connectionOK, nil
+	}
+
+	return nil, err
+
 }
