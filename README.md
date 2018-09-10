@@ -3,6 +3,7 @@
 <!-- toc -->
 - [Overview](#overview)
 - [Installation](#installation)
+- [Playground](#Playground)
 <!-- tocstop -->
 
 ## Overview
@@ -64,3 +65,12 @@ export ECX_API_USER_PASSWORD="yourapipassword"
 export EQUINIX_API_ID="yourAppId"
 export EQUINIX_API_SECRET="yourSecret"
 ```
+
+## Playground
+
+In order to use playground endpoint you should use the "playground-token" flag with the token.
+
+```
+ecxctl connections list --playground-token=xxxxxxxxxxxx
+````
+
