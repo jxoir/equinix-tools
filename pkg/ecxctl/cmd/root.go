@@ -59,6 +59,9 @@ var MetrosAPIClient *ECXMetrosAPI
 // PortsAPIClient Ports interface
 var PortsAPIClient *ECXPortsAPI
 
+// RoutingInstanceAPIClient Routing Instance interface
+var RoutingInstanceAPIClient *ECXRoutingInstanceAPI
+
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
@@ -156,5 +159,7 @@ func initAPIClient() {
 		ConnectionsAPIClient = NewECXConnectionsAPI(EcxAPIClient)
 		MetrosAPIClient = NewECXMetrosAPI(EcxAPIClient)
 		PortsAPIClient = NewECXPortsAPI(EcxAPIClient)
+		RoutingInstanceAPIClient = NewECXRoutingInstanceAPI(EcxAPIClient)
+
 	}
 }
