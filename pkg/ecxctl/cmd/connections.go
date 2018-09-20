@@ -19,19 +19,8 @@ import (
 	"fmt"
 	"log"
 
-	apiconnections "github.com/jxoir/go-ecxfabric/client/connections"
-
 	"github.com/spf13/cobra"
 )
-
-type ConnectionsAPIHandler interface {
-	GetByUUID(uuid string) (*apiconnections.GetConnectionByUUIDUsingGETOK, error)
-	GetAllBuyerConnections() (*apiconnections.GetAllBuyerConnectionsUsingGETOK, error)
-}
-
-type ECXConnectionsAPI struct {
-	*EquinixAPIClient
-}
 
 // connectionsCmd represents the metros command
 var connectionsCmd = &cobra.Command{
@@ -56,11 +45,6 @@ func init() {
 	rootCmd.AddCommand(connectionsCmd)
 	connectionsCmd.AddCommand(connectionsListCmd)
 	connectionsCmd.AddCommand(connectionsGetCmd)
-}
-
-// NewECXConnectionsAPI returns instantiated ECXConnectionsAPI struct
-func NewECXConnectionsAPI(equinixAPIClient *EquinixAPIClient) *ECXConnectionsAPI {
-	return &ECXConnectionsAPI{equinixAPIClient}
 }
 
 func connectionsListCommand(cmd *cobra.Command, args []string) {
@@ -90,58 +74,4 @@ func connectionsGetByUUIDCommand(cmd *cobra.Command, args []string) {
 			fmt.Println(string(connRes))
 		}
 	}
-}
-
-// GetAllBuyerConnections returns array of GetAllBuyerConnectionsUsingGETOK with list of customer connections
-func (m *ECXConnectionsAPI) GetAllBuyerConnections() (*apiconnections.GetAllBuyerConnectionsUsingGETOK, error) {
-	token, err := m.GetToken()
-	if err != nil {
-		log.Fatal(err)
-	}
-	connectionsOK, _, err := m.Client.Connections.GetAllBuyerConnectionsUsingGET(nil, token)
-	if err != nil {
-		switch t := err.(type) {
-		default:
-			log.Fatal(err)
-		case *apiconnections.GetAllBuyerConnectionsUsingGETBadRequest:
-			for _, getconnerrors := range t.Payload {
-				fmt.Println(getconnerrors.ErrorMessage)
-				return nil, err
-			}
-		}
-	}
-
-	return connectionsOK, nil
-
-}
-
-// GetByUUID get connection by uuid
-func (m *ECXConnectionsAPI) GetByUUID(uuid string) (*apiconnections.GetConnectionByUUIDUsingGETOK, error) {
-	params := apiconnections.NewGetConnectionByUUIDUsingGETParams()
-	params.ConnID = uuid
-
-	token, err := m.GetToken()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	connectionOK, _, err := m.Client.Connections.GetConnectionByUUIDUsingGET(params, token)
-	if err != nil {
-		switch t := err.(type) {
-		default:
-			return nil, err
-		case *apiconnections.GetConnectionByUUIDUsingGETBadRequest:
-			for _, getconnerrors := range t.Payload {
-				fmt.Println(getconnerrors.ErrorMessage + ":" + uuid)
-				return nil, err
-			}
-		}
-	}
-
-	if connectionOK != nil {
-		return connectionOK, nil
-	}
-
-	return nil, err
-
 }

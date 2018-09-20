@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package api
 
 import (
 	"fmt"
@@ -38,6 +38,7 @@ type EquinixAPIParams struct {
 	UserPassword    string
 	Endpoint        string
 	PlaygroundToken string
+	Debug           bool
 }
 
 // EquinixAPIClient containing structure for Client, params and apitoken
@@ -46,6 +47,7 @@ type EquinixAPIClient struct {
 	Client   *apiclient.GoEcxfabric
 	Params   *EquinixAPIParams
 	apiToken runtime.ClientAuthInfoWriter
+	Debug    bool
 }
 
 const (
@@ -146,13 +148,13 @@ func (ec *EquinixAPIClient) Authenticate() error {
 
 	accessToken, err := ec.Client.AccessToken.GetAccessToken(accessTokenParams, nil)
 	if err != nil {
-		if globalFlags.Debug {
+		if ec.Debug {
 			log.Println("Failed to retrieve token...")
 		}
 		return err
 	}
 
-	if globalFlags.Debug {
+	if ec.Debug {
 		log.Println("Token acquired...")
 	}
 
@@ -160,7 +162,7 @@ func (ec *EquinixAPIClient) Authenticate() error {
 
 	ec.apiToken = bearerTokenAuth
 
-	if globalFlags.Debug {
+	if ec.Debug {
 		log.Println("User:" + ec.Params.UserName)
 		log.Println("Endpoint:" + ec.Params.Endpoint)
 		log.Println("AppId:" + ec.Params.AppID)
