@@ -16,33 +16,25 @@ package cmd
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"strings"
 
-	apiroutinginstance "github.com/jxoir/go-ecxfabric/client/routing_instance"
+	"github.com/jxoir/equinix-tools/pkg/ecxlib/api/buyer"
 	"github.com/spf13/cobra"
 )
-
-type RoutingInstanceAPIHandler interface {
-	GetAllRoutingInstances() (*apiroutinginstance.GetAllRoutingInstancesUsingGETOK, error)
-}
-
-type ECXRoutingInstanceAPI struct {
-	*EquinixAPIClient
-}
-
-type GetAllRoutingInstancesParams struct {
-	MetroCode  *string
-	PageSize   int32
-	PageNumber int32
-	States     []string
-}
 
 var routingInstanceStates string
 var routingInstanceMetro string
 var routingInstanceName string
+
+var routingInstanceSecondaryName string
+var routingInstanceRequiredRedundancy bool
+var routingInstanceRouteType string
+var routingInstanceAsn int64
+var routingInstanceBgpUseAuth bool
+var routingInstanceBgpAuthorizationKey string
+var routingInstanceNotificationEmails []string
 
 // metrosCmd represents the metros command
 var routingInstanceCmd = &cobra.Command{
@@ -61,17 +53,23 @@ var routingInstanceListCmd = &cobra.Command{
 var routingInstanceCheckNameCmd = &cobra.Command{
 	Use:   "check-name",
 	Short: "check Routing Instance name exists or not",
-	Run:   routingInstancesCheckRoutingInstanceNameExists,
+	Run:   routingInstancesCheckRoutingInstanceNameExistsCommand,
+}
+
+var routingInstanceCreateCmd = &cobra.Command{
+	Use:   "create",
+	Short: "create new Routing Instance",
+	Run:   routingInstanceCreateCommand,
 }
 
 var routingInstanceDeleteCmd cobra.Command
 var routingInstanceUpdateCmd cobra.Command
-var routingInstanceCreateCmd cobra.Command
 
 func init() {
 	rootCmd.AddCommand(routingInstanceCmd)
 	routingInstanceCmd.AddCommand(routingInstanceListCmd)
 	routingInstanceCmd.AddCommand(routingInstanceCheckNameCmd)
+	routingInstanceCmd.AddCommand(routingInstanceCreateCmd)
 
 	routingInstanceListCmd.Flags().StringVarP(&routingInstanceMetro, "metro", "", "", "metro code")
 	routingInstanceListCmd.Flags().StringVarP(&routingInstanceStates, "state", "", "PROVISIONED", "routing instances states")
@@ -82,14 +80,27 @@ func init() {
 	routingInstanceCheckNameCmd.MarkFlagRequired("metro")
 	routingInstanceCheckNameCmd.MarkFlagRequired("instance-name")
 
+	// routeInstanceCreateCmd
+	routingInstanceCreateCmd.Flags().StringVarP(&routingInstanceMetro, "metro", "", "", "metro code")
+	routingInstanceCreateCmd.Flags().StringVarP(&routingInstanceName, "name", "", "", "routing instance name (primary)")
+	routingInstanceCreateCmd.Flags().StringVarP(&routingInstanceSecondaryName, "secondary-name", "", "", "routing instance secondary name")
+	routingInstanceCreateCmd.Flags().BoolVarP(&routingInstanceRequiredRedundancy, "redundancy", "", false, "required redundancy")
+	routingInstanceCreateCmd.Flags().Int64VarP(&routingInstanceAsn, "asn-number", "", 0, "asn number")
+	routingInstanceCreateCmd.Flags().BoolVarP(&routingInstanceBgpUseAuth, "bgp-auth", "", false, "required ASN BGP authentication")
+	routingInstanceCreateCmd.Flags().StringVarP(&routingInstanceBgpAuthorizationKey, "bgp-key", "", "", "bgp auth key if required")
+	routingInstanceCreateCmd.Flags().StringArrayVarP(&routingInstanceNotificationEmails, "notification-emails", "", []string{}, "notification emails (comma separated)")
+	routingInstanceCreateCmd.Flags().StringVarP(&routingInstanceRouteType, "type", "", "Private", "route type Private or Public")
+
+	routingInstanceCreateCmd.MarkFlagRequired("metro")
+	routingInstanceCreateCmd.MarkFlagRequired("name")
+	routingInstanceCreateCmd.MarkFlagRequired("secondary-name")
+	routingInstanceCreateCmd.MarkFlagRequired("asn")
+	routingInstanceCreateCmd.MarkFlagRequired("notification-emails")
+	routingInstanceCreateCmd.MarkFlagRequired("type")
+
 }
 
-// NewECXRoutingInstanceAPI returns instantiated ECXMetrosAPI struct
-func NewECXRoutingInstanceAPI(equinixAPIClient *EquinixAPIClient) *ECXRoutingInstanceAPI {
-	return &ECXRoutingInstanceAPI{equinixAPIClient}
-}
-
-func routingInstancesCheckRoutingInstanceNameExists(cmd *cobra.Command, args []string) {
+func routingInstancesCheckRoutingInstanceNameExistsCommand(cmd *cobra.Command, args []string) {
 	resp, err := RoutingInstanceAPIClient.CheckRoutingInstanceNameExists(routingInstanceName, routingInstanceMetro)
 	if err != nil {
 		log.Fatal(err)
@@ -109,13 +120,13 @@ func routingInstancesListCommand(cmd *cobra.Command, args []string) {
 		metro = routingInstanceMetro
 	}
 	states := strings.Split(routingInstanceStates, ",")
-	params := &GetAllRoutingInstancesParams{
+	params := buyer.GetAllRoutingInstancesParams{
 		PageNumber: 1,
 		PageSize:   10,
 		States:     states,
 		MetroCode:  &metro,
 	}
-	routingInstanceList, err := RoutingInstanceAPIClient.GetAllRoutingInstances(params)
+	routingInstanceList, err := RoutingInstanceAPIClient.GetAllRoutingInstances(&params)
 	if err != nil {
 		log.Fatal(err)
 	} else {
@@ -126,85 +137,33 @@ func routingInstancesListCommand(cmd *cobra.Command, args []string) {
 	}
 }
 
-// CheckRoutingInstanceNameExists returns bool or error
-func (m *ECXRoutingInstanceAPI) CheckRoutingInstanceNameExists(name string, metroCode string) (bool, error) {
+func routingInstanceCreateCommand(cmd *cobra.Command, args []string) {
 
-	token, err := m.GetToken()
+	// params = CreateRoutingInstanceParams{}
+
+	if routingInstanceBgpUseAuth && routingInstanceBgpAuthorizationKey == "" {
+		fmt.Println("BGP authorization key required")
+		return
+	}
+
+	params := buyer.CreateRoutingInstanceParams{
+		MetroCode:           routingInstanceMetro,
+		PrimaryName:         routingInstanceName,
+		SecondaryName:       routingInstanceSecondaryName,
+		RequiredRedundancy:  routingInstanceRequiredRedundancy,
+		RouteType:           routingInstanceRouteType,
+		Asn:                 routingInstanceAsn,
+		BgpUseAuth:          routingInstanceBgpUseAuth,
+		BgpAuthorizationKey: routingInstanceBgpAuthorizationKey,
+		NotificationEmails:  routingInstanceNotificationEmails,
+	}
+
+	riUUID, err := RoutingInstanceAPIClient.CreateRoutingInstance(&params)
+
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	apiParams := apiroutinginstance.NewIsRoutingInstanceExistUsingGETParams()
-
-	apiParams.MetroCode = metroCode
-	apiParams.Name = name
-
-	apiRespOk, apiRespNC, err := m.Client.RoutingInstance.IsRoutingInstanceExistUsingGET(apiParams, token)
-
-	if err != nil {
-		return false, err
-	}
-
-	if apiRespNC != nil {
-		return false, errors.New("No content")
-	}
-
-	if apiRespOk.Payload.Exist {
-		return true, nil
-	}
-
-	return false, nil
-}
-
-// GetAllRoutingInstances returns array of GetAllRoutingInstancesUsingGETOK with list of routing instances
-func (m *ECXRoutingInstanceAPI) GetAllRoutingInstances(params *GetAllRoutingInstancesParams) (*apiroutinginstance.GetAllRoutingInstancesUsingGETOK, error) {
-	if params == nil {
-		params = &GetAllRoutingInstancesParams{
-			PageNumber: 1,
-			PageSize:   10,
-		}
-	}
-
-	token, err := m.GetToken()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	apiParams := apiroutinginstance.NewGetAllRoutingInstancesUsingGETParams()
-
-	apiParams.MetroCode = params.MetroCode
-	apiParams.PageNumber = params.PageNumber
-	apiParams.PageSize = params.PageSize
-	apiParams.States = params.States
-
-	respRoutingInstancesOk, _, err := m.Client.RoutingInstance.GetAllRoutingInstancesUsingGET(apiParams, token)
-	if err != nil {
-		switch t := err.(type) {
-		default:
-			if globalFlags.Debug {
-				log.Println(err.Error())
-			}
-		case *json.UnmarshalTypeError:
-			if globalFlags.Debug {
-				log.Println(err.Error())
-				log.Println(t.Value)
-				log.Println(t.Struct)
-				log.Println(t.Field)
-				log.Println(t.Offset)
-			}
-		case *apiroutinginstance.GetAllRoutingInstancesUsingGETBadRequest:
-			if globalFlags.Debug {
-				log.Println("Bad request")
-			}
-		case *apiroutinginstance.GetAllRoutingInstancesUsingGETNoContent:
-			if globalFlags.Debug {
-				fmt.Println(t.Error())
-			}
-		}
-		return nil, err
-
-	}
-
-	return respRoutingInstancesOk, nil
+	fmt.Println("Routing instance " + routingInstanceName + " created:" + riUUID)
 
 }
