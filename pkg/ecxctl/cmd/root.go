@@ -18,6 +18,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/jxoir/equinix-tools/pkg/ecxlib/api"
+	"github.com/jxoir/equinix-tools/pkg/ecxlib/api/buyer"
+
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -48,16 +51,19 @@ var versionCmd = &cobra.Command{
 }
 
 // EcxAPIClient instance of EquinixAPI to ECX
-var EcxAPIClient *EquinixAPIClient
+var EcxAPIClient *api.EquinixAPIClient
 
 // ConnectionsAPIClient Connections interface
-var ConnectionsAPIClient *ECXConnectionsAPI
+var ConnectionsAPIClient *buyer.ECXConnectionsAPI
 
 // MetrosAPIClient Metros interface
-var MetrosAPIClient *ECXMetrosAPI
+var MetrosAPIClient *buyer.ECXMetrosAPI
 
 // PortsAPIClient Ports interface
-var PortsAPIClient *ECXPortsAPI
+var PortsAPIClient *buyer.ECXPortsAPI
+
+// RoutingInstanceAPIClient Routing Instance interface
+var RoutingInstanceAPIClient *buyer.ECXRoutingInstanceAPI
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
@@ -142,7 +148,7 @@ func initAPIClient() {
 			// Set-up playground environment
 			globalFlags.EcxAPIHost = globalFlags.PlaygroundAPIEndpoint
 		}
-		clientParams := &EquinixAPIParams{
+		clientParams := &api.EquinixAPIParams{
 			AppID:           globalFlags.EquinixAPIId,
 			AppSecret:       globalFlags.EquinixAPISecret,
 			GrantType:       "client_credentials",
@@ -150,11 +156,15 @@ func initAPIClient() {
 			UserPassword:    globalFlags.UserPassword,
 			Endpoint:        globalFlags.EcxAPIHost,
 			PlaygroundToken: globalFlags.PlaygroundToken,
+			Debug:           globalFlags.Debug,
 		}
 
-		EcxAPIClient = NewEcxAPIClient(clientParams, globalFlags.EcxAPIHost, globalFlags.NoSSL)
-		ConnectionsAPIClient = NewECXConnectionsAPI(EcxAPIClient)
-		MetrosAPIClient = NewECXMetrosAPI(EcxAPIClient)
-		PortsAPIClient = NewECXPortsAPI(EcxAPIClient)
+		EcxAPIClient = api.NewEcxAPIClient(clientParams, globalFlags.EcxAPIHost, globalFlags.NoSSL)
+
+		ConnectionsAPIClient = buyer.NewECXConnectionsAPI(EcxAPIClient)
+		MetrosAPIClient = buyer.NewECXMetrosAPI(EcxAPIClient)
+		PortsAPIClient = buyer.NewECXPortsAPI(EcxAPIClient)
+		RoutingInstanceAPIClient = buyer.NewECXRoutingInstanceAPI(EcxAPIClient)
+
 	}
 }

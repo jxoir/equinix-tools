@@ -19,18 +19,8 @@ import (
 	"fmt"
 	"log"
 
-	apiports "github.com/jxoir/go-ecxfabric/client/ports"
-
 	"github.com/spf13/cobra"
 )
-
-type PortsAPIHandler interface {
-	GetAllMetros() (*apiports.GetPortInfoUsingGET2OK, error)
-}
-
-type ECXPortsAPI struct {
-	*EquinixAPIClient
-}
 
 // metrosCmd represents the metros command
 var portsCmd = &cobra.Command{
@@ -50,11 +40,6 @@ func init() {
 
 }
 
-// NewECXMetrosAPI returns instantiated ECXMetrosAPI struct
-func NewECXPortsAPI(equinixAPIClient *EquinixAPIClient) *ECXPortsAPI {
-	return &ECXPortsAPI{equinixAPIClient}
-}
-
 func portsListCommand(cmd *cobra.Command, args []string) {
 	portsList, err := PortsAPIClient.GetAllPorts()
 	if err != nil {
@@ -67,27 +52,4 @@ func portsListCommand(cmd *cobra.Command, args []string) {
 			}
 		}
 	}
-}
-
-// GetAllBuyerConnections returns array of GetAllBuyerConnectionsUsingGETOK with list of customer connections
-func (m *ECXPortsAPI) GetAllPorts() (*apiports.GetPortInfoUsingGET2OK, error) {
-	token, err := m.GetToken()
-	if err != nil {
-		log.Fatal(err)
-	}
-	respPortsOk, err := m.Client.Ports.GetPortInfoUsingGET2(nil, token)
-	if err != nil {
-		switch t := err.(type) {
-		default:
-			log.Fatal(err)
-		case *apiports.GetPortInfoUsingGET2NotFound:
-			if globalFlags.Debug {
-				fmt.Println(t.Error())
-			}
-			return nil, err
-		}
-	}
-
-	return respPortsOk, nil
-
 }

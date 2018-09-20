@@ -19,17 +19,8 @@ import (
 	"fmt"
 	"log"
 
-	apimetros "github.com/jxoir/go-ecxfabric/client/metros"
 	"github.com/spf13/cobra"
 )
-
-type MetrosAPIHandler interface {
-	GetAllMetros() (*apimetros.GetMetrosUsingGETOK, error)
-}
-
-type ECXMetrosAPI struct {
-	*EquinixAPIClient
-}
 
 // metrosCmd represents the metros command
 var metrosCmd = &cobra.Command{
@@ -50,11 +41,6 @@ func init() {
 
 }
 
-// NewECXMetrosAPI returns instantiated ECXMetrosAPI struct
-func NewECXMetrosAPI(equinixAPIClient *EquinixAPIClient) *ECXMetrosAPI {
-	return &ECXMetrosAPI{equinixAPIClient}
-}
-
 func metrosListCommand(cmd *cobra.Command, args []string) {
 	metrosList, err := MetrosAPIClient.GetAllMetros()
 	if err != nil {
@@ -67,27 +53,4 @@ func metrosListCommand(cmd *cobra.Command, args []string) {
 			}
 		}
 	}
-}
-
-// GetAllBuyerConnections returns array of GetAllBuyerConnectionsUsingGETOK with list of customer connections
-func (m *ECXMetrosAPI) GetAllMetros() (*apimetros.GetMetrosUsingGETOK, error) {
-	token, err := m.GetToken()
-	if err != nil {
-		log.Fatal(err)
-	}
-	respMetrosOk, _, err := m.Client.Metros.GetMetrosUsingGET(nil, token)
-	if err != nil {
-		switch t := err.(type) {
-		default:
-			log.Fatal(err)
-		case *apimetros.GetMetrosUsingGETNoContent:
-			if globalFlags.Debug {
-				fmt.Println(t.Error())
-			}
-			return nil, err
-		}
-	}
-
-	return respMetrosOk, nil
-
 }
