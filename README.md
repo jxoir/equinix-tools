@@ -28,6 +28,7 @@ An **UNOFFICIAL** GO CLI for ECX and ECP Tested with Go 1.10+
    - [ ] Create a connection
    - [ ] Delete a connection
    - [ ] Modify a connection
+   - [x] Seller services list/fetch
    - Routing Instance
    - Connector
    - Subscription
