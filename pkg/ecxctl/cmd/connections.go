@@ -41,6 +41,13 @@ var connectionsGetCmd = &cobra.Command{
 	Run:   connectionsGetByUUIDCommand,
 }
 
+/**
+var connectionsCreateCmd = &cobra.Command{
+	Use:   "create",
+	Short: "create L2 connection (virtual circuit) in Azure, AWS or other cloud services",
+	Run:   connectionsCreateCommand,
+}**/
+
 func init() {
 	rootCmd.AddCommand(connectionsCmd)
 	connectionsCmd.AddCommand(connectionsListCmd)
@@ -49,12 +56,13 @@ func init() {
 
 func connectionsListCommand(cmd *cobra.Command, args []string) {
 	connList, err := ConnectionsAPIClient.GetAllBuyerConnections()
-	fmt.Println(connList)
+
 	if err != nil {
 		log.Fatal(err)
 	} else {
-		fmt.Printf("Total connections: %v", connList.Payload.TotalCount)
-		for _, connection := range connList.Payload.Content {
+		fmt.Printf("Total connections: %v\n", connList.TotalCount)
+
+		for _, connection := range connList.Items {
 			connRes, _ := json.MarshalIndent(connection, "", "    ")
 			fmt.Println(string(connRes))
 		}
@@ -75,3 +83,8 @@ func connectionsGetByUUIDCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 }
+
+/**
+func connectionsCreateCommand(cmd *cobra.Command, args []string) {
+
+}**/
