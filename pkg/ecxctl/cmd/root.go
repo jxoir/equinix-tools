@@ -65,6 +65,9 @@ var PortsAPIClient *buyer.ECXPortsAPI
 // RoutingInstanceAPIClient Routing Instance interface
 var RoutingInstanceAPIClient *buyer.ECXRoutingInstanceAPI
 
+// SellerServicesAPIClient Seller Services interface
+var SellerServicesAPIClient *buyer.ECXSellerServicesAPI
+
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
@@ -148,6 +151,7 @@ func initAPIClient() {
 			// Set-up playground environment
 			globalFlags.EcxAPIHost = globalFlags.PlaygroundAPIEndpoint
 		}
+
 		clientParams := &api.EquinixAPIParams{
 			AppID:           globalFlags.EquinixAPIId,
 			AppSecret:       globalFlags.EquinixAPISecret,
@@ -165,6 +169,6 @@ func initAPIClient() {
 		MetrosAPIClient = buyer.NewECXMetrosAPI(EcxAPIClient)
 		PortsAPIClient = buyer.NewECXPortsAPI(EcxAPIClient)
 		RoutingInstanceAPIClient = buyer.NewECXRoutingInstanceAPI(EcxAPIClient)
-
+		SellerServicesAPIClient = buyer.NewECXSellerServicesAPI(EcxAPIClient)
 	}
 }
