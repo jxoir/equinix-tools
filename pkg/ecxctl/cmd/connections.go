@@ -46,8 +46,8 @@ var connectionsCreateCmd = &cobra.Command{
 	Use:   "create",
 	Short: "create L2 connection (virtual circuit) in Azure, AWS or other cloud services",
 	Run:   connectionsCreateCommand,
-}**/
-
+}
+**/
 func init() {
 	rootCmd.AddCommand(connectionsCmd)
 	connectionsCmd.AddCommand(connectionsListCmd)
@@ -87,4 +87,5 @@ func connectionsGetByUUIDCommand(cmd *cobra.Command, args []string) {
 /**
 func connectionsCreateCommand(cmd *cobra.Command, args []string) {
 
-}**/
+}
+**/

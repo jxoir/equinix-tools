@@ -79,6 +79,7 @@ func NewEcxAPIClient(params *EquinixAPIParams, endpoint string, ignoreSSL bool) 
 		equinixAPIClient = &EquinixAPIClient{
 			Params: params,
 			Client: ecxAPIClient,
+			Debug:  params.Debug,
 		}
 
 	} else {
@@ -90,6 +91,7 @@ func NewEcxAPIClient(params *EquinixAPIParams, endpoint string, ignoreSSL bool) 
 		equinixAPIClient = &EquinixAPIClient{
 			Params: params,
 			Client: ecxAPIClient,
+			Debug:  params.Debug,
 		}
 	}
 
