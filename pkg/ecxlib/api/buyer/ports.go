@@ -5,7 +5,7 @@ import (
 	"log"
 
 	api "github.com/jxoir/equinix-tools/pkg/ecxlib/api"
-	apiports "github.com/jxoir/go-ecxfabric/client/ports"
+	apiports "github.com/jxoir/go-ecxfabric/buyer/client/ports"
 )
 
 type PortsAPIHandler interface {
@@ -27,7 +27,7 @@ func (ec *ECXPortsAPI) GetAllPorts() (*apiports.GetPortInfoUsingGET2OK, error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	respPortsOk, err := ec.Client.Ports.GetPortInfoUsingGET2(nil, token)
+	respPortsOk, err := ec.Buyer.Ports.GetPortInfoUsingGET2(nil, token)
 	if err != nil {
 		switch t := err.(type) {
 		default:

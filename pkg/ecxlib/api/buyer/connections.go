@@ -5,8 +5,8 @@ import (
 	"math"
 
 	api "github.com/jxoir/equinix-tools/pkg/ecxlib/api"
-	apiconnections "github.com/jxoir/go-ecxfabric/client/connections"
-	"github.com/jxoir/go-ecxfabric/models"
+	apiconnections "github.com/jxoir/go-ecxfabric/buyer/client/connections"
+	"github.com/jxoir/go-ecxfabric/buyer/models"
 )
 
 // Connections initial wrapper for swagger GetBuyerConResContent
@@ -76,7 +76,7 @@ func (m *ECXConnectionsAPI) GetBuyerConnections(pageNumber *int32, pageSize *int
 		params.PageSize = pageSize
 	}
 
-	connectionsOK, _, err := m.Client.Connections.GetAllBuyerConnectionsUsingGET(params, token)
+	connectionsOK, _, err := m.Buyer.Connections.GetAllBuyerConnectionsUsingGET(params, token)
 	if err != nil {
 		switch t := err.(type) {
 		default:
@@ -106,7 +106,7 @@ func (m *ECXConnectionsAPI) GetByUUID(uuid string) (*apiconnections.GetConnectio
 		log.Fatal(err)
 	}
 
-	connectionOK, _, err := m.Client.Connections.GetConnectionByUUIDUsingGET(params, token)
+	connectionOK, _, err := m.Buyer.Connections.GetConnectionByUUIDUsingGET(params, token)
 	if err != nil {
 		switch t := err.(type) {
 		default:
@@ -135,7 +135,7 @@ func (m *ECXConnectionsAPI) GetByUUID(uuid string) (*apiconnections.GetConnectio
 func (m *ECXConnectionsAPI) CreateL2Connection(params L2ConnectionParams) (*apiconnections.CreateConnectionUsingPOSTOK, error) {
 	p := apiconnections.NewCreateConnectionUsingPOSTParams
 	apiconnectionsmodel.PostConnectionRequest
-	connectionOk, err := m.Client.Connections.CreateConnectionUsingPOST(p, token)
+	connectionOk, err := m.Buyer.Connections.CreateConnectionUsingPOST(p, token)
 	if err != nil {
 		return _, err
 	}
