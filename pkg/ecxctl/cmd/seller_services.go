@@ -90,8 +90,10 @@ func sellerListCommand(cmd *cobra.Command, args []string) {
 		fmt.Printf("Total service profiles (L2): %v\n", sellerList.TotalCount)
 
 		for _, sprofile := range sellerList.Items {
-			sellerRes, _ := json.MarshalIndent(sprofile, "", "    ")
-			fmt.Println(string(sellerRes))
+			if strings.Contains(sprofile.Name, "AWS") {
+				sellerRes, _ := json.MarshalIndent(sprofile, "", "    ")
+				fmt.Println(string(sellerRes))
+			}
 		}
 	} else if sellerList != nil && sellerList.TotalCount == 0 {
 		fmt.Println("There are no seller profiles for specified metro")

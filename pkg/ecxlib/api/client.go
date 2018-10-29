@@ -24,9 +24,11 @@ import (
 	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
-	apiclient "github.com/jxoir/go-ecxfabric/client"
-	"github.com/jxoir/go-ecxfabric/client/access_token"
-	"github.com/jxoir/go-ecxfabric/models"
+	apibuyerclient "github.com/jxoir/go-ecxfabric/buyer/client"
+	apisellerclient "github.com/jxoir/go-ecxfabric/seller/client"
+
+	"github.com/jxoir/go-ecxfabric/buyer/client/access_token"
+	"github.com/jxoir/go-ecxfabric/buyer/models"
 )
 
 // EquinixAPIParams struct for generic Equinix params
@@ -44,7 +46,8 @@ type EquinixAPIParams struct {
 // EquinixAPIClient containing structure for Client, params and apitoken
 // TODO: Implement token refresh
 type EquinixAPIClient struct {
-	Client   *apiclient.GoEcxfabric
+	Buyer    *apibuyerclient.GoEcxfabricBuyer
+	Seller   *apisellerclient.GoEcxfabricSeller
 	Params   *EquinixAPIParams
 	apiToken runtime.ClientAuthInfoWriter
 	Debug    bool
@@ -74,11 +77,13 @@ func NewEcxAPIClient(params *EquinixAPIParams, endpoint string, ignoreSSL bool) 
 		}
 		client := &http.Client{Transport: tr}
 		transport := httptransport.NewWithClient(endpoint, "", nil, client)
-		ecxAPIClient := apiclient.New(transport, strfmt.Default)
+		ecxBuyerAPIClient := apibuyerclient.New(transport, strfmt.Default)
+		ecxSellerAPIClient := apisellerclient.New(transport, strfmt.Default)
 
 		equinixAPIClient = &EquinixAPIClient{
 			Params: params,
-			Client: ecxAPIClient,
+			Seller: ecxSellerAPIClient,
+			Buyer:  ecxBuyerAPIClient,
 			Debug:  params.Debug,
 		}
 
@@ -86,11 +91,13 @@ func NewEcxAPIClient(params *EquinixAPIParams, endpoint string, ignoreSSL bool) 
 		// create the transport
 		transport := httptransport.New(endpoint, "", nil)
 		// create the API client, with the transport
-		ecxAPIClient := apiclient.New(transport, strfmt.Default)
+		ecxBuyerAPIClient := apibuyerclient.New(transport, strfmt.Default)
+		ecxSellerAPIClient := apisellerclient.New(transport, strfmt.Default)
 
 		equinixAPIClient = &EquinixAPIClient{
 			Params: params,
-			Client: ecxAPIClient,
+			Seller: ecxSellerAPIClient,
+			Buyer:  ecxBuyerAPIClient,
 			Debug:  params.Debug,
 		}
 	}
@@ -148,7 +155,7 @@ func (ec *EquinixAPIClient) Authenticate() error {
 	accessTokenParams.SetRequest(&accessTokenRequest)
 	accessTokenParams.Authorization = "Bearer"
 
-	accessToken, err := ec.Client.AccessToken.GetAccessToken(accessTokenParams, nil)
+	accessToken, err := ec.Buyer.AccessToken.GetAccessToken(accessTokenParams, nil)
 	if err != nil {
 		if ec.Debug {
 			log.Println("Failed to retrieve token...")

@@ -7,8 +7,8 @@ import (
 	"log"
 
 	api "github.com/jxoir/equinix-tools/pkg/ecxlib/api"
-	apiroutinginstance "github.com/jxoir/go-ecxfabric/client/routing_instance"
-	apiroutinginstancemodel "github.com/jxoir/go-ecxfabric/models"
+	apiroutinginstance "github.com/jxoir/go-ecxfabric/buyer/client/routing_instance"
+	apiroutinginstancemodel "github.com/jxoir/go-ecxfabric/buyer/models"
 )
 
 type RoutingInstanceAPIHandler interface {
@@ -71,7 +71,7 @@ func (ec *ECXRoutingInstanceAPI) CreateRoutingInstance(params *CreateRoutingInst
 		log.Fatal("Routing instance name already exists, please choose another name")
 	}
 
-	routingInstanceOk, routingInstanceNC, err := ec.Client.RoutingInstance.CreateRoutingInstanceUsingPOST(apiParams, token)
+	routingInstanceOk, routingInstanceNC, err := ec.Buyer.RoutingInstance.CreateRoutingInstanceUsingPOST(apiParams, token)
 	if err != nil {
 		return "", err
 	}
@@ -96,7 +96,7 @@ func (ec *ECXRoutingInstanceAPI) CheckRoutingInstanceNameExists(name string, met
 	apiParams.MetroCode = metroCode
 	apiParams.Name = name
 
-	apiRespOk, apiRespNC, err := ec.Client.RoutingInstance.IsRoutingInstanceExistUsingGET(apiParams, token)
+	apiRespOk, apiRespNC, err := ec.Buyer.RoutingInstance.IsRoutingInstanceExistUsingGET(apiParams, token)
 
 	if err != nil {
 		return false, err
@@ -134,7 +134,7 @@ func (ec *ECXRoutingInstanceAPI) GetAllRoutingInstances(params *GetAllRoutingIns
 	apiParams.PageSize = params.PageSize
 	apiParams.States = params.States
 
-	respRoutingInstancesOk, _, err := ec.Client.RoutingInstance.GetAllRoutingInstancesUsingGET(apiParams, token)
+	respRoutingInstancesOk, _, err := ec.Buyer.RoutingInstance.GetAllRoutingInstancesUsingGET(apiParams, token)
 	if err != nil {
 		switch t := err.(type) {
 		default:

@@ -5,7 +5,7 @@ import (
 	"log"
 
 	api "github.com/jxoir/equinix-tools/pkg/ecxlib/api"
-	apimetros "github.com/jxoir/go-ecxfabric/client/metros"
+	apimetros "github.com/jxoir/go-ecxfabric/buyer/client/metros"
 )
 
 type MetrosAPIHandler interface {
@@ -21,13 +21,13 @@ func NewECXMetrosAPI(equinixAPIClient *api.EquinixAPIClient) *ECXMetrosAPI {
 	return &ECXMetrosAPI{equinixAPIClient}
 }
 
-// GetAllBuyerConnections returns array of GetAllBuyerConnectionsUsingGETOK with list of customer connections
+// GetAllMetros returns array of GetMetrosUsingGETOK with list of customer connections
 func (ec *ECXMetrosAPI) GetAllMetros() (*apimetros.GetMetrosUsingGETOK, error) {
 	token, err := ec.GetToken()
 	if err != nil {
 		log.Fatal(err)
 	}
-	respMetrosOk, _, err := ec.Client.Metros.GetMetrosUsingGET(nil, token)
+	respMetrosOk, _, err := ec.Buyer.Metros.GetMetrosUsingGET(nil, token)
 	if err != nil {
 		switch t := err.(type) {
 		default:

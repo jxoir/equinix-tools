@@ -6,12 +6,15 @@ import (
 	"math"
 
 	api "github.com/jxoir/equinix-tools/pkg/ecxlib/api"
-	apiseller_services "github.com/jxoir/go-ecxfabric/client/seller_services"
-	"github.com/jxoir/go-ecxfabric/models"
+	// Well the API is messed up, so we have some calls from the buyer spec and others from seller one...
+	api_buyer_seller_services "github.com/jxoir/go-ecxfabric/buyer/client/seller_services"
+	api_seller_service_profiles "github.com/jxoir/go-ecxfabric/seller/client/service_profiles"
+
+	"github.com/jxoir/go-ecxfabric/buyer/models"
 )
 
 type SellerServicesAPIHandler interface {
-	GetAllSellerProfiles() (*apiseller_services.GetProfilesByMetroUsingGETOK, error)
+	GetAllSellerProfiles() (*api_buyer_seller_services.GetProfilesByMetroUsingGETOK, error)
 }
 
 type ECXSellerServicesAPI struct {
@@ -41,7 +44,7 @@ func NewECXSellerServicesAPI(equinixAPIClient *api.EquinixAPIClient) *ECXSellerS
 	return &ECXSellerServicesAPI{equinixAPIClient}
 }
 
-// GetAllL2SellerProfiles returns array of ports
+// GetAllL2SellerProfiles list all L2 seller profiles for given metro
 func (ec *ECXSellerServicesAPI) GetAllL2SellerProfiles(metroCode *[]string) (*L2SellerProfiles, error) {
 	// Remember that *profiles* are a L2 service profile
 
@@ -72,14 +75,14 @@ func (ec *ECXSellerServicesAPI) GetAllL2SellerProfiles(metroCode *[]string) (*L2
 
 }
 
-// GetL2SellerProfiles retrieve list of buyer connections for a specific page number and specific page size
+// GetL2SellerProfiles retrieve list of L2 seller profiles for a given metro with specific page number and specific page size
 func (ec *ECXSellerServicesAPI) GetL2SellerProfiles(metroCode *[]string, pageNumber *int32, pageSize *int32) (*L2SellerProfiles, error) {
 	token, err := ec.GetToken()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	params := apiseller_services.NewGetProfilesByMetroUsingGETParams()
+	params := api_buyer_seller_services.NewGetProfilesByMetroUsingGETParams()
 
 	if metroCode != nil {
 		params.MetroCode = *metroCode
@@ -93,12 +96,12 @@ func (ec *ECXSellerServicesAPI) GetL2SellerProfiles(metroCode *[]string, pageNum
 		params.PageSize = pageSize
 	}
 
-	respSellPOk, respSellNC, err := ec.Client.SellerServices.GetProfilesByMetroUsingGET(params, token)
+	respSellPOk, respSellNC, err := ec.Buyer.SellerServices.GetProfilesByMetroUsingGET(params, token)
 	if err != nil {
 		switch t := err.(type) {
 		default:
 			return nil, err
-		case *apiseller_services.GetProfilesByMetroUsingGETBadRequest:
+		case *api_buyer_seller_services.GetProfilesByMetroUsingGETBadRequest:
 			if ec.Debug {
 				fmt.Println(t.Error())
 			}
@@ -122,7 +125,7 @@ func (ec *ECXSellerServicesAPI) GetL2SellerProfiles(metroCode *[]string, pageNum
 	return &respSellerProfilesList, nil
 }
 
-// GetAllL3SellerServices returns slice of L3SellerServices profiles (L3)
+// GetAllL3SellerServices list all L3 seller profiles for given metro
 func (ec *ECXSellerServicesAPI) GetAllL3SellerServices(metroCode *[]string) (*L3SellerServices, error) {
 	// Remember that *profiles* are a L2 service profile
 
@@ -153,14 +156,14 @@ func (ec *ECXSellerServicesAPI) GetAllL3SellerServices(metroCode *[]string) (*L3
 
 }
 
-// GetL3SellerServices retrieve list of seller services profiles (L3)
+// GetL3SellerServices retrieve list of L3 seller services for a given metro with specific page number and specific page size
 func (ec *ECXSellerServicesAPI) GetL3SellerServices(metroCode *[]string, pageNumber *int32, pageSize *int32) (*L3SellerServices, error) {
 	token, err := ec.GetToken()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	params := apiseller_services.NewGetSellerServicesUsingGETParams()
+	params := api_buyer_seller_services.NewGetSellerServicesUsingGETParams()
 
 	if metroCode != nil {
 		params.Metros = *metroCode
@@ -174,12 +177,12 @@ func (ec *ECXSellerServicesAPI) GetL3SellerServices(metroCode *[]string, pageNum
 		params.Total = pageSize
 	}
 
-	respSellPOk, err := ec.Client.SellerServices.GetSellerServicesUsingGET(params, token)
+	respSellPOk, err := ec.Buyer.SellerServices.GetSellerServicesUsingGET(params, token)
 	if err != nil {
 		switch t := err.(type) {
 		default:
 			return nil, err
-		case *apiseller_services.GetProfilesByMetroUsingGETBadRequest:
+		case *api_buyer_seller_services.GetProfilesByMetroUsingGETBadRequest:
 			if ec.Debug {
 				fmt.Println(t.Error())
 			}
@@ -197,17 +200,18 @@ func (ec *ECXSellerServicesAPI) GetL3SellerServices(metroCode *[]string, pageNum
 }
 
 // GetSellerProfileByUUID fetch service profile by uuid
-func (ec *ECXSellerServicesAPI) GetSellerProfileByUUID(uuid string) (*apiseller_services.GetProfileByIDUsingGETOK, error) {
+func (ec *ECXSellerServicesAPI) GetSellerProfileByUUID(uuid string) (*api_seller_service_profiles.GetProfileByIDOrNameUsingGETOK, error) {
 	token, err := ec.GetToken()
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Println(uuid)
-	params := apiseller_services.NewGetProfileByIDUsingGETParams()
+	params := api_seller_service_profiles.NewGetProfileByIDOrNameUsingGETParams()
 
-	params.UUID = "3708e870-51fd-4168-b89a-7e79020c630c"
+	params.UUID = uuid
 
-	sellerProfileOK, _, err := ec.Client.SellerServices.GetProfileByIDUsingGET(params, token)
+	sellerProfileOK, _, err := ec.Seller.ServiceProfiles.GetProfileByIDOrNameUsingGET(params, token)
+
 	if err != nil {
 		return nil, err
 	}
