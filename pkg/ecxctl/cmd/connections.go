@@ -22,7 +22,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// connectionsCmd represents the metros command
+var filterValues string
+var deleteUUID string
+var connectionMetro string
+
 var connectionsCmd = &cobra.Command{
 	Use:   "connections",
 	Short: "Operations related to ECX connections (buyer)",
@@ -41,7 +44,12 @@ var connectionsGetCmd = &cobra.Command{
 	Run:   connectionsGetByUUIDCommand,
 }
 
-var filterValues string
+var connectionsDeleteCmd = &cobra.Command{
+	Use:   "delete",
+	Short: "delete specific connection by uuid",
+	//Args:  cobra.MinimumNArgs(1),
+	Run: connectionsDeleteByUUIDCommand,
+}
 
 /**
 var connectionsCreateCmd = &cobra.Command{
@@ -54,27 +62,41 @@ func init() {
 	rootCmd.AddCommand(connectionsCmd)
 	connectionsCmd.AddCommand(connectionsListCmd)
 	connectionsCmd.AddCommand(connectionsGetCmd)
+	connectionsCmd.AddCommand(connectionsDeleteCmd)
+
 	connectionsListCmd.PersistentFlags().StringVarP(&filterValues, "filter", "f", "", "Comma separated key-value pair of filter (eg.: filter=Key=Name,Value=ECX)")
+	connectionsListCmd.PersistentFlags().StringVarP(&connectionMetro, "metro", "", "", "Filter metro code (ex.: LD)")
+
+	connectionsDeleteCmd.PersistentFlags().StringVarP(&deleteUUID, "uuid", "u", "", "UUID of the specific connection to delete")
+	connectionsDeleteCmd.MarkFlagRequired("uuid")
 
 }
 
 func connectionsListCommand(cmd *cobra.Command, args []string) {
 
-	connList, err := ConnectionsAPIClient.GetAllBuyerConnections()
+	metro := connectionMetro
+	connList, err := ConnectionsAPIClient.GetAllBuyerConnections(&metro)
 
 	if err != nil {
 		log.Fatal(err)
 	} else {
+		if connList.Count() > 0 {
+			if filterValues != "" {
+				filter := parseFilteringAttributes(filterValues)
+				connList.FilterItems(filter)
 
-		if filterValues != "" {
-			filter := parseFilteringAttributes(filterValues)
-			connList.FilterItems(filter)
+			}
 
-		}
-
-		for _, connection := range connList.GetItems() {
-			connRes, _ := json.MarshalIndent(connection, "", "    ")
-			fmt.Println(string(connRes))
+			for _, connection := range connList.GetItems() {
+				connRes, _ := json.MarshalIndent(connection, "", "    ")
+				fmt.Println(string(connRes))
+			}
+		} else {
+			if metro != "" {
+				fmt.Println("No connections found for metro %s", metro)
+			} else {
+				fmt.Println("No connections found")
+			}
 		}
 	}
 }
@@ -91,5 +113,20 @@ func connectionsGetByUUIDCommand(cmd *cobra.Command, args []string) {
 			connRes, _ := json.MarshalIndent(conn, "", "    ")
 			fmt.Println(string(connRes))
 		}
+	}
+}
+
+func connectionsDeleteByUUIDCommand(cmd *cobra.Command, args []string) {
+
+	if deleteUUID != "" {
+		del, err := ConnectionsAPIClient.DeleteByUUID(deleteUUID)
+		if err != nil {
+			fmt.Printf("Error deleting connection: %s\n", deleteUUID)
+		} else {
+			fmt.Printf("Connection %s succesfully deleted\n", del.Payload.PrimaryConnectionID)
+			//fmt.Println(del.Payload.Message)
+		}
+	} else {
+		fmt.Println("Specify connection UUID to delete")
 	}
 }
