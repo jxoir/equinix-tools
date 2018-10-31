@@ -62,9 +62,9 @@ func NewECXConnectionsAPI(equinixAPIClient *client.EquinixAPIClient) *ECXConnect
 }
 
 // GetAllBuyerConnections get all buyer connections (traversing pagination)
-func (m *ECXConnectionsAPI) GetAllBuyerConnections() (*ConnectionsResponse, error) {
+func (m *ECXConnectionsAPI) GetAllBuyerConnections(metro *string) (*ConnectionsResponse, error) {
 
-	connectionsList, err := m.GetBuyerConnections(nil, nil)
+	connectionsList, err := m.GetBuyerConnections(nil, nil, metro)
 	if err != nil {
 		return nil, err
 	}
@@ -73,32 +73,37 @@ func (m *ECXConnectionsAPI) GetAllBuyerConnections() (*ConnectionsResponse, erro
 	pageSize := connectionsList.PageSize
 	totalPages := int64(math.Ceil(float64(totalCount) / float64(pageSize)))
 
-	// Start iterating from page 1 as we have "page 0" (yeah...swagger implementation of first page)
-	psize := int32(pageSize)
-	for p := 1; p <= int(totalPages-1); p++ {
-		next := int32(p)
-		req, err := m.GetBuyerConnections(&next, &psize)
-		if err != nil {
-			return nil, err
-		} else {
-			//connectionsList.Items = append(append(connectionsList.Items, req.Items...))
-			connectionsList.AppendItems(req.Items)
+	if pageSize > 0 && totalCount > 0 {
+		// Start iterating from page 1 as we have "page 0" (yeah...swagger implementation of first page)
+		psize := int32(pageSize)
+		for p := 1; p <= int(totalPages-1); p++ {
+			next := int32(p)
+			req, err := m.GetBuyerConnections(&next, &psize, metro)
+			if err != nil {
+				return nil, err
+			} else {
+				//connectionsList.Items = append(append(connectionsList.Items, req.Items...))
+				connectionsList.AppendItems(req.Items)
+			}
+
 		}
-
 	}
-
 	return connectionsList, nil
 
 }
 
 // GetBuyerConnections retrieve list of buyer connections for a specific page number and specific page size
-func (m *ECXConnectionsAPI) GetBuyerConnections(pageNumber *int32, pageSize *int32) (*ConnectionsResponse, error) {
+func (m *ECXConnectionsAPI) GetBuyerConnections(pageNumber *int32, pageSize *int32, metro *string) (*ConnectionsResponse, error) {
 	token, err := m.GetToken()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	params := apiconnections.NewGetAllBuyerConnectionsUsingGETParams()
+
+	if metro != nil && *metro != "" {
+		params.MetroCode = metro
+	}
 
 	if pageNumber != nil {
 		params.PageNumber = pageNumber
@@ -108,8 +113,18 @@ func (m *ECXConnectionsAPI) GetBuyerConnections(pageNumber *int32, pageSize *int
 		params.PageSize = pageSize
 	}
 
-	connectionsOK, _, err := m.Buyer.Connections.GetAllBuyerConnectionsUsingGET(params, token)
+	connectionsList := ConnectionsResponse{}
+
+	connectionsOK, connectionsNC, err := m.Buyer.Connections.GetAllBuyerConnectionsUsingGET(params, token)
+	if connectionsNC != nil {
+		connectionsList.PageTotalCount = 0
+		connectionsList.PageSize = 0
+
+		return &connectionsList, nil
+
+	}
 	if err != nil {
+
 		switch t := err.(type) {
 		default:
 			return nil, err
@@ -119,14 +134,12 @@ func (m *ECXConnectionsAPI) GetBuyerConnections(pageNumber *int32, pageSize *int
 		}
 	}
 
-	connectionsList := ConnectionsResponse{
-		PageSize:       connectionsOK.Payload.PageSize,
-		PageTotalCount: connectionsOK.Payload.TotalCount,
-	}
-
+	connectionsList.PageSize = connectionsOK.Payload.PageSize
+	connectionsList.PageTotalCount = connectionsOK.Payload.TotalCount
 	connectionsList.SetItems(connectionsList.parseContent(connectionsOK.Payload.Content))
 
 	return &connectionsList, nil
+
 }
 
 // GetByUUID get connection by uuid
@@ -159,6 +172,35 @@ func (m *ECXConnectionsAPI) GetByUUID(uuid string) (*apiconnections.GetConnectio
 	}
 
 	return nil, err
+
+}
+
+// DeleteByUUID get connection by uuid
+func (m *ECXConnectionsAPI) DeleteByUUID(uuid string) (*apiconnections.DeleteConnectionUsingDELETEOK, error) {
+	params := apiconnections.NewDeleteConnectionUsingDELETEParams()
+	params.SetConnID(uuid)
+
+	token, err := m.GetToken()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	deleteOK, err := m.Buyer.Connections.DeleteConnectionUsingDELETE(params, token)
+	if err != nil {
+		switch t := err.(type) {
+		default:
+			return nil, err
+		case *apiconnections.GetConnectionByUUIDUsingGETBadRequest:
+			// check for envelope message in badrequest - deprecated
+			/** for _, getconnerrors := range t.Payload {
+				fmt.Println(getconnerrors.ErrorMessage + ":" + uuid)
+				return nil, err
+			}**/
+			return nil, t
+		}
+	}
+
+	return deleteOK, nil
 
 }
 
