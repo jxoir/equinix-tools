@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 
-	api "github.com/jxoir/equinix-tools/pkg/ecxlib/api"
+	api "github.com/jxoir/equinix-tools/pkg/ecxlib/api/client"
 	apiroutinginstance "github.com/jxoir/go-ecxfabric/buyer/client/routing_instance"
 	apiroutinginstancemodel "github.com/jxoir/go-ecxfabric/buyer/models"
 )

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	api "github.com/jxoir/equinix-tools/pkg/ecxlib/api"
+	api "github.com/jxoir/equinix-tools/pkg/ecxlib/api/client"
 	apiports "github.com/jxoir/go-ecxfabric/buyer/client/ports"
 )
 

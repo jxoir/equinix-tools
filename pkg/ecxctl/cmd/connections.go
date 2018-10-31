@@ -41,6 +41,8 @@ var connectionsGetCmd = &cobra.Command{
 	Run:   connectionsGetByUUIDCommand,
 }
 
+var filterValues string
+
 /**
 var connectionsCreateCmd = &cobra.Command{
 	Use:   "create",
@@ -52,18 +54,27 @@ func init() {
 	rootCmd.AddCommand(connectionsCmd)
 	connectionsCmd.AddCommand(connectionsListCmd)
 	connectionsCmd.AddCommand(connectionsGetCmd)
+	connectionsListCmd.PersistentFlags().StringVarP(&filterValues, "filter", "f", "", "Comma separated key-value pair of filter (eg.: filter=Key=Name,Value=ECX)")
+
 }
 
 func connectionsListCommand(cmd *cobra.Command, args []string) {
+
 	connList, err := ConnectionsAPIClient.GetAllBuyerConnections()
 
 	if err != nil {
 		log.Fatal(err)
 	} else {
-		fmt.Printf("Total connections: %v\n", connList.TotalCount)
 
-		for _, connection := range connList.Items {
-			connRes, _ := json.MarshalIndent(connection, "", "    ")
+		if filterValues != "" {
+			filter := parseFilteringAttributes(filterValues)
+			connList.FilterItems(filter)
+
+		}
+
+		for _, connection := range connList.GetItems() {
+			//connRes, _ := json.MarshalIndent(connection, "", "    ")
+			connRes, _ := json.Marshal(connection)
 			fmt.Println(string(connRes))
 		}
 	}
@@ -83,9 +94,3 @@ func connectionsGetByUUIDCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 }
-
-/**
-func connectionsCreateCommand(cmd *cobra.Command, args []string) {
-
-}
-**/

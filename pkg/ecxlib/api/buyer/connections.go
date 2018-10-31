@@ -4,41 +4,72 @@ import (
 	"log"
 	"math"
 
-	api "github.com/jxoir/equinix-tools/pkg/ecxlib/api"
+	client "github.com/jxoir/equinix-tools/pkg/ecxlib/api/client"
 	apiconnections "github.com/jxoir/go-ecxfabric/buyer/client/connections"
 	"github.com/jxoir/go-ecxfabric/buyer/models"
 )
 
-// Connections initial wrapper for swagger GetBuyerConResContent
-type Connections struct {
-	Items      []*models.GetBuyerConResContent
-	TotalCount int64
-	PageSize   int64
-}
-
-type ConnectionsAPIHandler interface {
-	GetByUUID(uuid string) (*apiconnections.GetConnectionByUUIDUsingGETOK, error)
-	GetAllBuyerConnections() (*apiconnections.GetAllBuyerConnectionsUsingGETOK, error)
-}
-
+// ECXConnectionsAPI Connections api client container
 type ECXConnectionsAPI struct {
-	*api.EquinixAPIClient
+	*client.EquinixAPIClient
+}
+
+// ConnectionsResponse initial wrapper for swagger GetBuyerConResContent
+type ConnectionsResponse struct {
+	Items          []interface{}
+	PageTotalCount int64
+	PageSize       int64
+}
+
+// AppendItems appends slice of interface items to internal Items
+func (c *ConnectionsResponse) AppendItems(items []interface{}) {
+	c.Items = append(c.Items, items...)
+}
+
+// SetItems replaces internal slice of interface items with items
+func (c *ConnectionsResponse) SetItems(items []interface{}) {
+	c.Items = items
+}
+
+// GetItems retrieves all Items
+func (c *ConnectionsResponse) GetItems() []interface{} {
+	return c.Items
+}
+
+// FilterItems applies specific filters to items and updates internal items
+func (c *ConnectionsResponse) FilterItems(filters map[string]string) {
+	client.ResponseFilter(c, filters)
+}
+
+// Count return total count of items
+func (c *ConnectionsResponse) Count() int {
+	return len(c.Items)
+}
+
+// parseContent copy from the returned slice of pointers GetBuyerConResContent to a []interface{}
+func (c *ConnectionsResponse) parseContent(payload []*models.GetBuyerConResContent) []interface{} {
+	interfaceSlice := make([]interface{}, len(payload))
+	for i, d := range payload {
+		//interfaceSlice[i] = d
+		interfaceSlice[i] = d
+	}
+	return interfaceSlice
 }
 
 // NewECXConnectionsAPI returns instantiated ECXConnectionsAPI struct
-func NewECXConnectionsAPI(equinixAPIClient *api.EquinixAPIClient) *ECXConnectionsAPI {
+func NewECXConnectionsAPI(equinixAPIClient *client.EquinixAPIClient) *ECXConnectionsAPI {
 	return &ECXConnectionsAPI{equinixAPIClient}
 }
 
 // GetAllBuyerConnections get all buyer connections (traversing pagination)
-func (m *ECXConnectionsAPI) GetAllBuyerConnections() (*Connections, error) {
+func (m *ECXConnectionsAPI) GetAllBuyerConnections() (*ConnectionsResponse, error) {
 
 	connectionsList, err := m.GetBuyerConnections(nil, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	totalCount := connectionsList.TotalCount
+	totalCount := connectionsList.PageTotalCount
 	pageSize := connectionsList.PageSize
 	totalPages := int64(math.Ceil(float64(totalCount) / float64(pageSize)))
 
@@ -50,7 +81,8 @@ func (m *ECXConnectionsAPI) GetAllBuyerConnections() (*Connections, error) {
 		if err != nil {
 			return nil, err
 		} else {
-			connectionsList.Items = append(append(connectionsList.Items, req.Items...))
+			//connectionsList.Items = append(append(connectionsList.Items, req.Items...))
+			connectionsList.AppendItems(req.Items)
 		}
 
 	}
@@ -60,7 +92,7 @@ func (m *ECXConnectionsAPI) GetAllBuyerConnections() (*Connections, error) {
 }
 
 // GetBuyerConnections retrieve list of buyer connections for a specific page number and specific page size
-func (m *ECXConnectionsAPI) GetBuyerConnections(pageNumber *int32, pageSize *int32) (*Connections, error) {
+func (m *ECXConnectionsAPI) GetBuyerConnections(pageNumber *int32, pageSize *int32) (*ConnectionsResponse, error) {
 	token, err := m.GetToken()
 	if err != nil {
 		log.Fatal(err)
@@ -87,11 +119,12 @@ func (m *ECXConnectionsAPI) GetBuyerConnections(pageNumber *int32, pageSize *int
 		}
 	}
 
-	connectionsList := Connections{
-		Items:      connectionsOK.Payload.Content,
-		TotalCount: connectionsOK.Payload.TotalCount,
-		PageSize:   connectionsOK.Payload.PageSize,
+	connectionsList := ConnectionsResponse{
+		PageSize:       connectionsOK.Payload.PageSize,
+		PageTotalCount: connectionsOK.Payload.TotalCount,
 	}
+
+	connectionsList.SetItems(connectionsList.parseContent(connectionsOK.Payload.Content))
 
 	return &connectionsList, nil
 }
