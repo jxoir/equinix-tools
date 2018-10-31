@@ -93,7 +93,8 @@ func connectionsListCommand(cmd *cobra.Command, args []string) {
 			}
 		} else {
 			if metro != "" {
-				fmt.Println("No connections found for metro %s", metro)
+				// error message changed, thanks Mischa :)
+				fmt.Printf("No connections found for %s metro\n", metro)
 			} else {
 				fmt.Println("No connections found")
 			}
