@@ -26,7 +26,7 @@ An **UNOFFICIAL** GO CLI for ECX and ECP Tested with Go 1.10+
    - [x] Get connection by uuid
    - [ ] Validate authorization key
    - [ ] Create a connection
-   - [ ] Delete a connection
+   - [x] Delete a connection
    - [ ] Modify a connection
    - [x] Seller services list/fetch
    - Routing Instance
@@ -89,3 +89,24 @@ Filtering *only* works with one filter and *doesn't* traverse nested structures
 ecxctl connections list --filter=Key=name,Value=something
 ```
 
+## Connections
+
+List available connections
+```
+ecxctl connections list
+```
+List connections filtered 
+```
+ecxctl connections list --filter=Key=name,Value=something
+```
+
+
+Retrieve connection details (uuid as argument, no need to flag --uuid)
+```
+ecxctl connections get xxxxxxxxx-xxxxxxxx-xxxxxxx-xxxxxxx
+```
+
+Delete (use --uuid flag, security measure)
+```
+ecxctl connections delete --uuid=xxxxxxxxx-xxxxxxxx-xxxxxxx-xxxxxxx
+```
