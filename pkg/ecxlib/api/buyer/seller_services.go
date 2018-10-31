@@ -5,7 +5,7 @@ import (
 	"log"
 	"math"
 
-	api "github.com/jxoir/equinix-tools/pkg/ecxlib/api"
+	api "github.com/jxoir/equinix-tools/pkg/ecxlib/api/client"
 	// Well the API is messed up, so we have some calls from the buyer spec and others from seller one...
 	api_buyer_seller_services "github.com/jxoir/go-ecxfabric/buyer/client/seller_services"
 	api_seller_service_profiles "github.com/jxoir/go-ecxfabric/seller/client/service_profiles"

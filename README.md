@@ -75,3 +75,17 @@ In order to use playground endpoint you should use the "playground-token" flag w
 ecxctl connections list --playground-token=xxxxxxxxxxxx
 ````
 
+# Filtering
+
+Basic filtering options available (connections initially)
+
+Key/Value filtering
+
+To filter a connection list by connection name with value "something"
+
+Filtering *only* works with one filter and *doesn't* traverse nested structures
+
+```
+ecxctl connections list --filter=Key=name,Value=something
+```
+

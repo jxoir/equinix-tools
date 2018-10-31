@@ -17,6 +17,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"regexp"
 
 	"github.com/jxoir/equinix-tools/pkg/ecxlib/api"
 	"github.com/jxoir/equinix-tools/pkg/ecxlib/api/buyer"
@@ -171,4 +172,21 @@ func initAPIClient() {
 		RoutingInstanceAPIClient = buyer.NewECXRoutingInstanceAPI(EcxAPIClient)
 		SellerServicesAPIClient = buyer.NewECXSellerServicesAPI(EcxAPIClient)
 	}
+}
+
+func parseFilteringAttributes(str string) map[string]string {
+	// simple regular expression to match key=value comma separated
+	// for now we only allow one filter
+	// TODO accept more than one filter
+	re := regexp.MustCompile("Key=(.+),Value=(.+)$")
+	data := re.FindAllStringSubmatch(str, -1)
+
+	res := make(map[string]string)
+	for _, kv := range data {
+		k := kv[1]
+		v := kv[2]
+		res[k] = v
+	}
+
+	return res
 }
