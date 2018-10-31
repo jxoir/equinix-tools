@@ -19,8 +19,8 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/jxoir/equinix-tools/pkg/ecxlib/api"
 	"github.com/jxoir/equinix-tools/pkg/ecxlib/api/buyer"
+	client "github.com/jxoir/equinix-tools/pkg/ecxlib/api/client"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -52,7 +52,7 @@ var versionCmd = &cobra.Command{
 }
 
 // EcxAPIClient instance of EquinixAPI to ECX
-var EcxAPIClient *api.EquinixAPIClient
+var EcxAPIClient *client.EquinixAPIClient
 
 // ConnectionsAPIClient Connections interface
 var ConnectionsAPIClient *buyer.ECXConnectionsAPI
@@ -153,7 +153,7 @@ func initAPIClient() {
 			globalFlags.EcxAPIHost = globalFlags.PlaygroundAPIEndpoint
 		}
 
-		clientParams := &api.EquinixAPIParams{
+		clientParams := &client.EquinixAPIParams{
 			AppID:           globalFlags.EquinixAPIId,
 			AppSecret:       globalFlags.EquinixAPISecret,
 			GrantType:       "client_credentials",
@@ -164,7 +164,7 @@ func initAPIClient() {
 			Debug:           globalFlags.Debug,
 		}
 
-		EcxAPIClient = api.NewEcxAPIClient(clientParams, globalFlags.EcxAPIHost, globalFlags.NoSSL)
+		EcxAPIClient = client.NewEcxAPIClient(clientParams, globalFlags.EcxAPIHost, globalFlags.NoSSL)
 
 		ConnectionsAPIClient = buyer.NewECXConnectionsAPI(EcxAPIClient)
 		MetrosAPIClient = buyer.NewECXMetrosAPI(EcxAPIClient)

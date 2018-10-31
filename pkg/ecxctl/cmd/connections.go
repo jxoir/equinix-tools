@@ -73,8 +73,7 @@ func connectionsListCommand(cmd *cobra.Command, args []string) {
 		}
 
 		for _, connection := range connList.GetItems() {
-			//connRes, _ := json.MarshalIndent(connection, "", "    ")
-			connRes, _ := json.Marshal(connection)
+			connRes, _ := json.MarshalIndent(connection, "", "    ")
 			fmt.Println(string(connRes))
 		}
 	}
