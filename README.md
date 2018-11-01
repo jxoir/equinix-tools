@@ -25,7 +25,8 @@ An **UNOFFICIAL** GO CLI for ECX and ECP Tested with Go 1.10+
    - [x] List connections
    - [x] Get connection by uuid
    - [ ] Validate authorization key
-   - [ ] Create a connection
+   - [x] Create a L2 connection to a Seller profile (specific use case for AWS/Azure,Others)
+   - [ ] Create a generic L2 connection
    - [x] Delete a connection
    - [ ] Modify a connection
    - [x] Seller services list/fetch
@@ -90,6 +91,25 @@ ecxctl connections list --filter=Key=name,Value=something
 ```
 
 ## Connections
+
+Create L2 connection to seller service (shortcut to establish a simple connection to AWS initially)
+
+- Required flags
+  - name - user specified name for the new connection
+  - port-uuid - user port to establish the connection to
+  - vlan - user side VLAN for the specific connection (primary connection)
+  - auth-key - specific seller authorization key, in the case of AWS is the Account ID, Azure auth key must be retrieved from Azure portal
+  - seller-uuid - seller specific uuid (can be retrieved with seller command)
+  - seller-region - specific seller param, in the case of AWS is the destination region ex.: eu-west-1
+  - seller-metro - seller metro to connect to, some sellers allows to use a "remote" connection (incurring in extra charges)
+  - speed - speed for the connection, must be allowed by the platform and seller (can be retrieved with seller command)
+  - speed-unit - MB / GB, must be allowed by the platform and the seller (can be retrieved with seller command)
+  - notifications-email - email for notifications
+
+```sh
+ecxctl connections create --name=EQUINIX_DEMO_CONN --port-uuid=2813d8f6-4623-4a5c-9c71-34de7e100933 --seller-metro=LD --seller-region=eu-west-1 --seller-uuid=9b460b5a-5461-4186-a3d5-2e8d8fb4c91b 
+ --speed=50 --speed-unit=MB --vlan=3022 --auth-key=12345678912 --notifications-email=some@email.com
+```
 
 List available connections
 ```

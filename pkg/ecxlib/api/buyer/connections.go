@@ -1,6 +1,8 @@
 package buyer
 
 import (
+	"errors"
+	"fmt"
 	"log"
 	"math"
 
@@ -19,6 +21,77 @@ type ConnectionsResponse struct {
 	Items          []interface{}
 	PageTotalCount int64
 	PageSize       int64
+}
+
+type CreateL2SellerConnectionParams struct {
+	// authorization key
+	AuthorizationKey string `json:"authorizationKey,omitempty"`
+
+	// named tag
+	NamedTag string `json:"namedTag,omitempty"`
+
+	// notifications
+	Notifications []string `json:"notifications"`
+
+	// primary name
+	PrimaryName string `json:"primaryName,omitempty"`
+
+	// primary port UUID
+	PrimaryPortUUID string `json:"primaryPortUUID,omitempty"`
+
+	// primary vlan c tag
+	PrimaryVlanCTag string `json:"primaryVlanCTag,omitempty"`
+
+	// primary vlan s tag
+	PrimaryVlanSTag int64 `json:"primaryVlanSTag,omitempty"`
+
+	// primary z side port UUID
+	PrimaryZSidePortUUID string `json:"primaryZSidePortUUID,omitempty"`
+
+	// primary z side vlan c tag
+	PrimaryZSideVlanCTag int64 `json:"primaryZSideVlanCTag,omitempty"`
+
+	// primary z side vlan s tag
+	PrimaryZSideVlanSTag int64 `json:"primaryZSideVlanSTag,omitempty"`
+
+	// profile UUID
+	ProfileUUID string `json:"profileUUID,omitempty"`
+
+	// purchase order number
+	PurchaseOrderNumber string `json:"purchaseOrderNumber,omitempty"`
+
+	// secondary name
+	SecondaryName string `json:"secondaryName,omitempty"`
+
+	// secondary port UUID
+	SecondaryPortUUID string `json:"secondaryPortUUID,omitempty"`
+
+	// secondary vlan c tag
+	SecondaryVlanCTag string `json:"secondaryVlanCTag,omitempty"`
+
+	// secondary vlan s tag
+	SecondaryVlanSTag int64 `json:"secondaryVlanSTag,omitempty"`
+
+	// secondary z side port UUID
+	SecondaryZSidePortUUID string `json:"secondaryZSidePortUUID,omitempty"`
+
+	// secondary z side vlan c tag
+	SecondaryZSideVlanCTag int64 `json:"secondaryZSideVlanCTag,omitempty"`
+
+	// secondary z side vlan s tag
+	SecondaryZSideVlanSTag int64 `json:"secondaryZSideVlanSTag,omitempty"`
+
+	// seller metro code
+	SellerMetroCode string `json:"sellerMetroCode,omitempty"`
+
+	// seller region
+	SellerRegion string `json:"sellerRegion,omitempty"`
+
+	// speed
+	Speed int64 `json:"speed,omitempty"`
+
+	// speed unit
+	SpeedUnit string `json:"speedUnit,omitempty"`
 }
 
 // AppendItems appends slice of interface items to internal Items
@@ -59,6 +132,10 @@ func (c *ConnectionsResponse) parseContent(payload []*models.GetBuyerConResConte
 // NewECXConnectionsAPI returns instantiated ECXConnectionsAPI struct
 func NewECXConnectionsAPI(equinixAPIClient *client.EquinixAPIClient) *ECXConnectionsAPI {
 	return &ECXConnectionsAPI{equinixAPIClient}
+}
+
+func (m *ECXConnectionsAPI) NewCreateL2SellerConnectionParams() *CreateL2SellerConnectionParams {
+	return &CreateL2SellerConnectionParams{}
 }
 
 // GetAllBuyerConnections get all buyer connections (traversing pagination)
@@ -175,7 +252,7 @@ func (m *ECXConnectionsAPI) GetByUUID(uuid string) (*apiconnections.GetConnectio
 
 }
 
-// DeleteByUUID get connection by uuid
+// DeleteByUUID delete connection by uuid
 func (m *ECXConnectionsAPI) DeleteByUUID(uuid string) (*apiconnections.DeleteConnectionUsingDELETEOK, error) {
 	params := apiconnections.NewDeleteConnectionUsingDELETEParams()
 	params.SetConnID(uuid)
@@ -204,17 +281,77 @@ func (m *ECXConnectionsAPI) DeleteByUUID(uuid string) (*apiconnections.DeleteCon
 
 }
 
-// CreateL2Connection
-
-/**
-func (m *ECXConnectionsAPI) CreateL2Connection(params L2ConnectionParams) (*apiconnections.CreateConnectionUsingPOSTOK, error) {
-	p := apiconnections.NewCreateConnectionUsingPOSTParams
-	apiconnectionsmodel.PostConnectionRequest
-	connectionOk, err := m.Buyer.Connections.CreateConnectionUsingPOST(p, token)
-	if err != nil {
-		return _, err
+// CreateL2Connection creates an L2 connection to a specific service profile
+func (m *ECXConnectionsAPI) CreateL2ConnectionSellerProfile(params *CreateL2SellerConnectionParams, ecxseller *ECXSellerServicesAPI) (*apiconnections.CreateConnectionUsingPOSTOK, error) {
+	if params == nil {
+		return nil, errors.New("Parameters to create L2 connection not provided")
 	}
 
-	return connectionOk, _
+	if params.ProfileUUID == "" {
+		return nil, errors.New("must provide seller profile UUID")
+	}
+
+	if m.Debug {
+		log.Printf("Trying to obtain seller profile for UUID %s\n", params.ProfileUUID)
+	}
+
+	// first we obtain the seller profile
+	seller, err := ecxseller.GetSellerProfileByUUID(params.ProfileUUID)
+	if err != nil {
+		s := fmt.Sprintf("can't obtain seller profile for %s UUID", params.ProfileUUID)
+		return nil, errors.New(s)
+	}
+
+	if m.Debug {
+		log.Printf("Trying to validate integration ID %s\n", seller.Payload.IntegrationID)
+	}
+	// validate the integrationId
+	integrationIDOk, err := ecxseller.ValidateIntegrationID(seller.Payload.IntegrationID)
+	if err != nil {
+		return nil, err
+	}
+
+	if !integrationIDOk {
+		s := fmt.Sprintf("Can't validate ontegration ID %s for seller profile %s UUID", seller.Payload.IntegrationID, params.ProfileUUID)
+		return nil, errors.New(s)
+
+	}
+	// seller.Payload.IntegrationID
+
+	ecxAPIParams := apiconnections.NewCreateConnectionUsingPOSTParams()
+	request := &models.PostConnectionRequest{
+		PrimaryName:      params.PrimaryName,
+		PrimaryPortUUID:  params.PrimaryPortUUID,
+		PrimaryVlanSTag:  params.PrimaryVlanSTag,
+		Speed:            params.Speed,
+		SpeedUnit:        params.SpeedUnit,
+		Notifications:    params.Notifications,
+		SellerRegion:     params.SellerRegion,     //"eu-west-1" // get from seller? this should be AWS
+		SellerMetroCode:  params.SellerMetroCode,  // provided by customer
+		AuthorizationKey: params.AuthorizationKey, // aws account id in this case
+		ProfileUUID:      seller.Payload.UUID,
+	}
+
+	ecxAPIParams.Request = request
+
+	token, err := m.GetToken()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	connOk, err := m.Buyer.Connections.CreateConnectionUsingPOST(ecxAPIParams, token)
+	if err != nil {
+		// TODO create an APIError response interface and struct with a getmessages method
+		/**
+		switch t := err.(type) {
+		case *apiconnections.CreateConnectionUsingPOSTBadRequest:
+			return nil, errors.New(t.Payload)
+		default:
+			return nil, err
+		}**/
+		return nil, err
+	}
+
+	return connOk, nil
+
 }
-**/
