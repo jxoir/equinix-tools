@@ -2,6 +2,7 @@ package client
 
 import (
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -63,7 +64,19 @@ func ResponseFilter(response ECXAPIResponse, filters map[string]string) {
 							if strings.Contains(valueField.String(), value) {
 								newitems = append(newitems, item)
 							}
+
+						case reflect.Int64:
+							intv, err := strconv.ParseInt(value, 10, 32)
+							if err != nil {
+								// just continue, we werent able to parse the int of value
+								continue
+							}
+							if valueField.Int() == intv {
+								newitems = append(newitems, item)
+							}
+
 						}
+
 					}
 
 				}

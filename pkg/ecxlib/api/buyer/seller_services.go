@@ -205,7 +205,7 @@ func (ec *ECXSellerServicesAPI) GetSellerProfileByUUID(uuid string) (*api_seller
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println(uuid)
+
 	params := api_seller_service_profiles.NewGetProfileByIDOrNameUsingGETParams()
 
 	params.UUID = uuid
@@ -220,4 +220,30 @@ func (ec *ECXSellerServicesAPI) GetSellerProfileByUUID(uuid string) (*api_seller
 		return sellerProfileOK, nil
 	}
 	return nil, nil
+}
+
+// ValidateIntegrationID validates profile integrationId and returns true only if state == VALID
+func (ec *ECXSellerServicesAPI) ValidateIntegrationID(integrationid string) (bool, error) {
+	token, err := ec.GetToken()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	params := api_seller_service_profiles.NewValidateIntegrationIDUsingGETParams()
+	params.IntegrationID = integrationid
+
+	idRespOK, idRespNC, err := ec.Seller.ServiceProfiles.ValidateIntegrationIDUsingGET(params, token)
+
+	if err != nil {
+		return false, err
+	}
+	if idRespNC != nil {
+		return false, nil
+	}
+
+	if idRespOK.Payload.State == "VALID" {
+		return true, nil
+	}
+
+	return false, nil
 }

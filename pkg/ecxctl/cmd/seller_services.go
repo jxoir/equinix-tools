@@ -68,7 +68,6 @@ func init() {
 	sellerL2Cmd.AddCommand(sellerListCmd)
 	sellerL2Cmd.AddCommand(sellerGetCmd)
 	sellerListCmd.Flags().StringVarP(&sellerProfileMetro, "metros", "", "", "comma separated list of metro codes")
-	sellerGetCmd.Flags().StringVarP(&sellerProfileUUID, "uuid", "", "", "seller profile uuid to fetch")
 
 	// Group L3 commands
 	sellerCmd.AddCommand(sellerL3Cmd)
@@ -100,18 +99,21 @@ func sellerListCommand(cmd *cobra.Command, args []string) {
 }
 
 func sellerGetByUUIDCommand(cmd *cobra.Command, args []string) {
-	if sellerProfileUUID == "" {
-		log.Fatal("seller profile UUID required")
+	for _, uuid := range args {
+
+		//	if sellerProfileUUID == "" {
+		//		log.Fatal("seller profile UUID required")
+		//	}
+
+		sellerProfile, err := SellerServicesAPIClient.GetSellerProfileByUUID(uuid)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		sellerRes, _ := json.MarshalIndent(sellerProfile.Payload, "", "    ")
+		fmt.Println(string(sellerRes))
 	}
-
-	sellerProfile, err := SellerServicesAPIClient.GetSellerProfileByUUID(sellerProfileUUID)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	sellerRes, _ := json.MarshalIndent(sellerProfile.Payload, "", "    ")
-	fmt.Println(string(sellerRes))
 }
 
 func sellerServicesListCommand(cmd *cobra.Command, args []string) {
