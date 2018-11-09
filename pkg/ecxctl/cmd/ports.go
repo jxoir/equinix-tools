@@ -46,10 +46,15 @@ func portsListCommand(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	} else {
 		if portsList != nil {
-			for _, port := range portsList.Payload {
-				portsRes, _ := json.MarshalIndent(port, "", "    ")
+
+			ports := portsList.Payload
+			portsRes, err := json.MarshalIndent(ports, "", "    ")
+			if err != nil {
+				log.Fatal("There was an error with json response:", err)
+			} else {
 				fmt.Println(string(portsRes))
 			}
+
 		}
 	}
 }

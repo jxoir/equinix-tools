@@ -131,9 +131,16 @@ func routingInstancesListCommand(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	} else {
 		if routingInstanceList != nil {
-			connRes, _ := json.MarshalIndent(routingInstanceList.Payload, "", "    ")
-			fmt.Println(string(connRes))
+
+			routingInstances := routingInstanceList.Payload.RoutingInstances
+			routingInstancesRes, err := json.MarshalIndent(routingInstances, "", "    ")
+			if err != nil {
+				log.Fatal("There was an error with json response:", err)
+			} else {
+				fmt.Println(string(routingInstancesRes))
+			}
 		}
+
 	}
 }
 
