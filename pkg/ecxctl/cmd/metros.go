@@ -47,10 +47,14 @@ func metrosListCommand(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	} else {
 		if metrosList != nil {
-			for _, metro := range metrosList.Payload {
-				connRes, _ := json.MarshalIndent(metro, "", "    ")
-				fmt.Println(string(connRes))
+			metros := metrosList.Payload
+			metrosRes, err := json.MarshalIndent(metros, "", "    ")
+			if err != nil {
+				log.Fatal("There was an error with json response:", err)
+			} else {
+				fmt.Println(string(metrosRes))
 			}
+
 		}
 	}
 }

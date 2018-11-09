@@ -86,12 +86,15 @@ func sellerListCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if sellerList != nil && sellerList.TotalCount > 0 {
-		fmt.Printf("Total service profiles (L2): %v\n", sellerList.TotalCount)
 
-		for _, sprofile := range sellerList.Items {
-			sellerRes, _ := json.MarshalIndent(sprofile, "", "    ")
-			fmt.Println(string(sellerRes))
+		sellers := sellerList.Items
+		sellersRes, err := json.MarshalIndent(sellers, "", "    ")
+		if err != nil {
+			log.Fatal("There was an error with json response:", err)
+		} else {
+			fmt.Println(string(sellersRes))
 		}
+
 	} else if sellerList != nil && sellerList.TotalCount == 0 {
 		fmt.Println("There are no seller profiles for specified metro")
 	}
@@ -125,11 +128,13 @@ func sellerServicesListCommand(cmd *cobra.Command, args []string) {
 	}
 
 	if sellerList != nil && sellerList.TotalCount > 0 {
-		fmt.Printf("Total seller services profiles (L3): %v\n", sellerList.TotalCount)
 
-		for _, sprofile := range sellerList.Items {
-			sellerRes, _ := json.MarshalIndent(sprofile, "", "    ")
-			fmt.Println(string(sellerRes))
+		sellers := sellerList.Items
+		sellersRes, err := json.MarshalIndent(sellers, "", "    ")
+		if err != nil {
+			log.Fatal("There was an error with json response:", err)
+		} else {
+			fmt.Println(string(sellersRes))
 		}
 	} else if sellerList != nil && sellerList.TotalCount == 0 {
 		fmt.Println("There are no seller services profiles for specified metro")

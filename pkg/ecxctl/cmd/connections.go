@@ -123,10 +123,14 @@ func connectionsListCommand(cmd *cobra.Command, args []string) {
 
 			}
 
-			for _, connection := range connList.GetItems() {
-				connRes, _ := json.MarshalIndent(connection, "", "    ")
+			connections := connList.GetItems()
+			connRes, err := json.MarshalIndent(connections, "", "    ")
+			if err != nil {
+				log.Fatal("There was an error with json response:", err)
+			} else {
 				fmt.Println(string(connRes))
 			}
+
 		} else {
 			if metro != "" {
 				// error message changed, thanks Mischa :)
