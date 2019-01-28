@@ -320,16 +320,20 @@ func (m *ECXConnectionsAPI) CreateL2ConnectionSellerProfile(params *CreateL2Sell
 
 	ecxAPIParams := apiconnections.NewCreateConnectionUsingPOSTParams()
 	request := &models.PostConnectionRequest{
-		PrimaryName:      params.PrimaryName,
-		PrimaryPortUUID:  params.PrimaryPortUUID,
-		PrimaryVlanSTag:  params.PrimaryVlanSTag,
-		Speed:            params.Speed,
-		SpeedUnit:        params.SpeedUnit,
-		Notifications:    params.Notifications,
-		SellerRegion:     params.SellerRegion,     //"eu-west-1" // get from seller? this should be AWS
-		SellerMetroCode:  params.SellerMetroCode,  // provided by customer
-		AuthorizationKey: params.AuthorizationKey, // aws account id in this case
-		ProfileUUID:      seller.Payload.UUID,
+		PrimaryName:       params.PrimaryName,
+		PrimaryPortUUID:   params.PrimaryPortUUID,
+		PrimaryVlanSTag:   params.PrimaryVlanSTag,
+		SecondaryName:     params.SecondaryName,
+		SecondaryPortUUID: params.SecondaryPortUUID,
+		SecondaryVlanSTag: params.SecondaryVlanSTag,
+		Speed:             params.Speed,
+		SpeedUnit:         params.SpeedUnit,
+		Notifications:     params.Notifications,
+		SellerRegion:      params.SellerRegion,     //"eu-west-1" // get from seller? this should be AWS
+		SellerMetroCode:   params.SellerMetroCode,  // provided by customer
+		AuthorizationKey:  params.AuthorizationKey, // aws account id in this case
+		ProfileUUID:       seller.Payload.UUID,
+		NamedTag:          params.NamedTag,
 	}
 
 	ecxAPIParams.Request = request
