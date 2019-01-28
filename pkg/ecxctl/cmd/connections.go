@@ -30,8 +30,11 @@ var connectionMetro string
 
 // vars for create connection command
 var createL2SellerConPrimaryName string
+var createL2SellerConSecondaryName string
 var createL2SellerConPrimaryPortUUID string
+var createL2SellerConSecondaryPortUUID string
 var createL2SellerConPrimaryVlanSTag int64 // should be casted to int64
+var createL2SellerConSecondaryVlanSTag int64
 var createL2SellerConSellerProfileUUID string
 var createL2SellerConSellerRegion string
 var createL2SellerConSellerMetroCode string
@@ -39,6 +42,7 @@ var createL2SellerConSpeed int64 // should be casted to int64
 var createL2SellerConSpeedUnit string
 var createL2SellerConNotificationsEmail string
 var createL2SellerConAuthorizationKey string
+var createL2SellerConNamedTag string
 
 var connectionsCmd = &cobra.Command{
 	Use:   "connections",
@@ -85,8 +89,11 @@ func init() {
 	connectionsDeleteCmd.MarkFlagRequired("uuid")
 
 	connectionsCreateCmd.Flags().StringVarP(&createL2SellerConPrimaryName, "name", "n", "", "name for the new connection")
+	connectionsCreateCmd.Flags().StringVarP(&createL2SellerConSecondaryName, "name-sec", "", "", "name for the secondary connection")
 	connectionsCreateCmd.Flags().StringVarP(&createL2SellerConPrimaryPortUUID, "port-uuid", "", "", "user port uuid")
+	connectionsCreateCmd.Flags().StringVarP(&createL2SellerConSecondaryPortUUID, "port-uuid-sec", "", "", "secondary user port uuid")
 	connectionsCreateCmd.Flags().Int64VarP(&createL2SellerConPrimaryVlanSTag, "vlan", "", 0, "user vlan")
+	connectionsCreateCmd.Flags().Int64VarP(&createL2SellerConSecondaryVlanSTag, "vlan-sec", "", 0, "secondary user vlan")
 	connectionsCreateCmd.Flags().StringVarP(&createL2SellerConSellerProfileUUID, "seller-uuid", "", "", "seller profile uuid (destination UUID)")
 	connectionsCreateCmd.Flags().StringVarP(&createL2SellerConSellerRegion, "seller-region", "", "", "seller destination region (ex. AWS: eu-west-1)")
 	connectionsCreateCmd.Flags().StringVarP(&createL2SellerConSellerMetroCode, "seller-metro", "", "", "seller destination metro code (ex.: LD)")
@@ -94,6 +101,7 @@ func init() {
 	connectionsCreateCmd.Flags().StringVarP(&createL2SellerConSpeedUnit, "speed-unit", "", "", "connection speed unit MB, GB")
 	connectionsCreateCmd.Flags().StringVarP(&createL2SellerConAuthorizationKey, "auth-key", "", "", "service authorization key (in AWS case use AWS Account ID)")
 	connectionsCreateCmd.Flags().StringVarP(&createL2SellerConNotificationsEmail, "notifications-email", "", "", "email for notifications")
+	connectionsCreateCmd.Flags().StringVarP(&createL2SellerConNamedTag, "named-tag", "", "", "primary ZSide Vlan CTag")
 
 	connectionsCreateCmd.MarkFlagRequired("name")
 	connectionsCreateCmd.MarkFlagRequired("port-uuid")
@@ -184,12 +192,26 @@ func connectionsCreateCommand(cmd *cobra.Command, args []string) {
 	params := ConnectionsAPIClient.NewCreateL2SellerConnectionParams()
 
 	params.PrimaryName = createL2SellerConPrimaryName
+	if createL2SellerConSecondaryName != "" {
+		params.SecondaryName = createL2SellerConSecondaryName
+	}
+
 	params.PrimaryPortUUID = createL2SellerConPrimaryPortUUID
+	if createL2SellerConSecondaryPortUUID != "" {
+		params.SecondaryPortUUID = createL2SellerConSecondaryPortUUID
+	}
 
 	if createL2SellerConPrimaryVlanSTag == 0 {
 		panic(createL2SellerConPrimaryVlanSTag)
 	}
 	params.PrimaryVlanSTag = createL2SellerConPrimaryVlanSTag
+	if createL2SellerConSecondaryVlanSTag != 0 {
+		params.SecondaryVlanSTag = createL2SellerConSecondaryVlanSTag
+	}
+
+	if createL2SellerConNamedTag != "" {
+		params.NamedTag = createL2SellerConNamedTag
+	}
 
 	if createL2SellerConSpeed == 0 {
 		panic(createL2SellerConSpeed)
