@@ -106,6 +106,63 @@ Create L2 connection to seller service (shortcut to establish a simple connectio
   - speed-unit - MB / GB, must be allowed by the platform and the seller (can be retrieved with seller command)
   - notifications-email - email for notifications
 
+### Create Connection Flowchart
+
+```
++------------------------+               +---------------------------+                           +------------------------------------+
+|                        | Get Service   |                           |  Get Service              |                                    |
+|   User Initiates the   | Profile       |  Seller                   |  Profiles for Customer    |  Buyer                             |
+|   Creation Process     | +-----------> |  /serviceprofiles/{uuid}  | +-----------------------> |  /serviceprofiles/services/{uuid}  |
+|                        |               |                           |                           |                                    |
++------------------------+               +---------------------------+                           +------------------------------------+
+
+                                                                                                                          +         +
+                                                                                                                          |         |
+                                                                                                                          |         |
+                                                                                          Get Available Connection        |         |
+                                                                                          Tiers for the Profile           |         |
+                                                                                                                          |         |
+                                                                                        +-------------------------+       |         |
+                                                                                        |                         |       |         |
+                                                                                        |  /common/billingTiers/  | <-----+         |
+         +-------------------------------+                                              |                         |                 |
+         | NO                            |                                              +-------------------------+                 |
+         |                               |                                                                                          |
+         +                               v                                                                                          |
+                                                                                                                                    |
++-----------------+        +-----------------------------------------+   Validate Keys  +---------------------------+               |
+|                 |        |                                         |   with Provider  |                           | Get Service   |
+| Are Keys Valid? | <----+ |  Buyer                                  |                  |  Seller                   | Profile       |
+|                 |        |  /connections/validateAuthorizationKey  | <--------------+ |  /serviceprofiles/{uuid}  |               |
++-----------------+        |                                         |                  |                           | <-------------+
+                           +-----------------------------------------+                  +---------------------------+
+   YES  +
+        |                                                   ^
+        |                                                   |
+        v                                                   |
+                                                            |
+ +---------------+                                          |
+ | Buyer         |                                          |
+ | /connections/ |                                          |
+ |               |                                          |
+ +---------------+                                          |
+                                                            |
+        +                                                   |
+        |                                                   |
+        |                                                   |
+        v                                                   |
+                                                            |
+  +-------------+  YES                                      |
+  | Any Errors? |  +----------------------------------------+
+  +-------------+
+
+    NO  +
+        |            +--------------+
+        |            |  Connection  |
+        +--------->  |  Created     |
+                     +--------------+
+```
+
 ### Create connection to AWS
 
 ```sh
