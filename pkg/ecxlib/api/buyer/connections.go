@@ -291,6 +291,10 @@ func (m *ECXConnectionsAPI) CreateL2ConnectionSellerProfile(params *CreateL2Sell
 		return nil, errors.New("must provide seller profile UUID")
 	}
 
+	if params.PrimaryPortUUID == "" {
+		return nil, errors.New("must provide a port id for the connection")
+	}
+
 	if m.Debug {
 		log.Printf("Trying to obtain seller profile for UUID %s\n", params.ProfileUUID)
 	}
@@ -316,6 +320,27 @@ func (m *ECXConnectionsAPI) CreateL2ConnectionSellerProfile(params *CreateL2Sell
 		return nil, errors.New(s)
 
 	}
+
+	// Validate that all the required information for the secondary port comes
+	if params.SecondaryName != "" || params.SecondaryPortUUID != "" || params.SecondaryVlanSTag != 0 || params.NamedTag != "" {
+		if params.SecondaryName == "" {
+			return nil, errors.New("must provide a name for the secondary connection")
+		}
+
+		if params.SecondaryPortUUID == "" {
+			return nil, errors.New("must provide the port id for the secondary connection")
+		}
+
+		if params.SecondaryVlanSTag == 0 {
+			return nil, errors.New("must provide the vlan for the secondary connection")
+		}
+
+		// Validate that ports are not the same
+		if params.PrimaryPortUUID == params.SecondaryPortUUID {
+			return nil, errors.New("must provide a different port id for the secondary connection")
+		}
+	}
+
 	// seller.Payload.IntegrationID
 
 	ecxAPIParams := apiconnections.NewCreateConnectionUsingPOSTParams()
