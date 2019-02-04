@@ -106,9 +106,74 @@ Create L2 connection to seller service (shortcut to establish a simple connectio
   - speed-unit - MB / GB, must be allowed by the platform and the seller (can be retrieved with seller command)
   - notifications-email - email for notifications
 
+### Create Connection Flowchart
+
+```
++------------------------+               +---------------------------+                           +------------------------------------+
+|                        | Get Service   |                           |  Get Service              |                                    |
+|   User Initiates the   | Profile       |  Seller                   |  Profiles for Customer    |  Buyer                             |
+|   Creation Process     | +-----------> |  /serviceprofiles/{uuid}  | +-----------------------> |  /serviceprofiles/services/{uuid}  |
+|                        |               |                           |                           |                                    |
++------------------------+               +---------------------------+                           +------------------------------------+
+
+                                                                                                                          +         +
+                                                                                                                          |         |
+                                                                                                                          |         |
+                                                                                          Get Available Connection        |         |
+                                                                                          Tiers for the Profile           |         |
+                                                                                                                          |         |
+                                                                                        +-------------------------+       |         |
+                                                                                        |                         |       |         |
+                                                                                        |  /common/billingTiers/  | <-----+         |
+         +-------------------------------+                                              |                         |                 |
+         | NO                            |                                              +-------------------------+                 |
+         |                               |                                                                                          |
+         +                               v                                                                                          |
+                                                                                                                                    |
++-----------------+        +-----------------------------------------+   Validate Keys  +---------------------------+               |
+|                 |        |                                         |   with Provider  |                           | Get Service   |
+| Are Keys Valid? | <----+ |  Buyer                                  |                  |  Seller                   | Profile       |
+|                 |        |  /connections/validateAuthorizationKey  | <--------------+ |  /serviceprofiles/{uuid}  |               |
++-----------------+        |                                         |                  |                           | <-------------+
+                           +-----------------------------------------+                  +---------------------------+
+   YES  +
+        |                                                   ^
+        |                                                   |
+        v                                                   |
+                                                            |
+ +---------------+                                          |
+ | Buyer         |                                          |
+ | /connections/ |                                          |
+ |               |                                          |
+ +---------------+                                          |
+                                                            |
+        +                                                   |
+        |                                                   |
+        |                                                   |
+        v                                                   |
+                                                            |
+  +-------------+  YES                                      |
+  | Any Errors? |  +----------------------------------------+
+  +-------------+
+
+    NO  +
+        |            +--------------+
+        |            |  Connection  |
+        +--------->  |  Created     |
+                     +--------------+
+```
+
+### Create connection to AWS
+
 ```sh
 ecxctl connections create --name=EQUINIX_DEMO_CONN --port-uuid=2813d8f6-4623-4a5c-9c71-34de7e100933 --seller-metro=LD --seller-region=eu-west-1 --seller-uuid=9b460b5a-5461-4186-a3d5-2e8d8fb4c91b 
  --speed=50 --speed-unit=MB --vlan=3022 --auth-key=12345678912 --notifications-email=some@email.com
+```
+
+### Create connection to Azure
+
+```sh
+ecxctl connections create --name=EQUINIX_DEMO_CONN_AZ --name-sec=EQUINIX_DEMO_CONN_AZ_SEC --port-uuid=66284add-49a3-9a30-b4e0-30ac094f8af1 --port-uuid-sec=66284add-49a5-9a50-b4e0-30ac094f8af1 --seller-metro=LD --seller-region=westeurope --seller-uuid=a1390b22-bbe0-4e93-ad37-85beef9d254d --speed=50 --named-tag=Microsoft --speed-unit=MB --vlan=3143 --vlan-sec=3143 --auth-key=12345678912 --notifications-email=some@email.com
 ```
 
 List available connections
