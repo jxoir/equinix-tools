@@ -18,7 +18,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 
 	apiconnections "github.com/jxoir/go-ecxfabric/buyer/client/connections"
 	"github.com/spf13/cobra"
@@ -28,21 +27,40 @@ var filterValues string
 var deleteUUID string
 var connectionMetro string
 
+// flag to call wrapper around l2 connection
+var createL2CSP bool
+
 // vars for create connection command
-var createL2SellerConPrimaryName string
-var createL2SellerConSecondaryName string
-var createL2SellerConPrimaryPortUUID string
-var createL2SellerConSecondaryPortUUID string
-var createL2SellerConPrimaryVlanSTag int64 // should be casted to int64
-var createL2SellerConSecondaryVlanSTag int64
-var createL2SellerConSellerProfileUUID string
-var createL2SellerConSellerRegion string
-var createL2SellerConSellerMetroCode string
-var createL2SellerConSpeed int64 // should be casted to int64
-var createL2SellerConSpeedUnit string
-var createL2SellerConNotificationsEmail string
-var createL2SellerConAuthorizationKey string
-var createL2SellerConNamedTag string
+var createL2ConAuthorizationKey string
+var createL2ConNamedTag string
+var createL2ConNotificationsEmail string
+var createL2ConPrimaryName string
+
+var createL2ConPrimaryPortUUID string
+var createL2ConPrimaryVlanCTag string // should be casted to int64 - Inner tag
+var createL2ConPrimaryVlanSTag int64  // should be casted to int64 - Outer tag
+
+var createL2ConPrimaryZSidePortUUID string // should be casted to int64
+var createL2ConPrimaryZSideVlanCTag string // should be casted to int64
+var createL2ConPrimaryZSideVlanSTag int64  // should be casted to int64
+
+var createL2ConSellerProfileUUID string
+var purchaseOrderNumber string
+
+var createL2ConSecondaryName string
+var createL2ConSecondaryPortUUID string
+var createL2ConSecondaryVlanCTag string
+var createL2ConSecondaryVlanSTag int64
+
+var createL2ConSecondaryZSidePortUUID string // should be casted to int64
+var createL2ConSecondaryZSideVlanCTag int64  // should be casted to int64
+var createL2ConSecondaryZSideVlanSTag int64  // should be casted to int64
+
+var createL2ConSellerMetroCode string
+var createL2ConSellerRegion string
+
+var createL2ConSpeed int64 // should be casted to int64
+var createL2ConSpeedUnit string
 
 var connectionsCmd = &cobra.Command{
 	Use:   "connections",
@@ -69,9 +87,9 @@ var connectionsDeleteCmd = &cobra.Command{
 	Run: connectionsDeleteByUUIDCommand,
 }
 
-var connectionsCreateCmd = &cobra.Command{
+var connectionsCreateL2Cmd = &cobra.Command{
 	Use:   "create",
-	Short: "create L2 connection (virtual circuit) in Azure, AWS or other seller services",
+	Short: "create L2 connection (virtual circuit) to any destination",
 	Run:   connectionsCreateCommand,
 }
 
@@ -80,7 +98,7 @@ func init() {
 	connectionsCmd.AddCommand(connectionsListCmd)
 	connectionsCmd.AddCommand(connectionsGetCmd)
 	connectionsCmd.AddCommand(connectionsDeleteCmd)
-	connectionsCmd.AddCommand(connectionsCreateCmd)
+	connectionsCmd.AddCommand(connectionsCreateL2Cmd)
 
 	connectionsListCmd.PersistentFlags().StringVarP(&filterValues, "filter", "f", "", "Comma separated key-value pair of filter (eg.: filter=Key=Name,Value=ECX)")
 	connectionsListCmd.PersistentFlags().StringVarP(&connectionMetro, "metro", "", "", "Filter metro code (ex.: LD)")
@@ -88,32 +106,42 @@ func init() {
 	connectionsDeleteCmd.Flags().StringVarP(&deleteUUID, "uuid", "u", "", "*connection* to delete")
 	connectionsDeleteCmd.MarkFlagRequired("uuid")
 
-	connectionsCreateCmd.Flags().StringVarP(&createL2SellerConPrimaryName, "name", "n", "", "name for the new connection")
-	connectionsCreateCmd.Flags().StringVarP(&createL2SellerConSecondaryName, "name-sec", "", "", "name for the secondary connection")
-	connectionsCreateCmd.Flags().StringVarP(&createL2SellerConPrimaryPortUUID, "port-uuid", "", "", "user port uuid")
-	connectionsCreateCmd.Flags().StringVarP(&createL2SellerConSecondaryPortUUID, "port-uuid-sec", "", "", "secondary user port uuid")
-	connectionsCreateCmd.Flags().Int64VarP(&createL2SellerConPrimaryVlanSTag, "vlan", "", 0, "user vlan")
-	connectionsCreateCmd.Flags().Int64VarP(&createL2SellerConSecondaryVlanSTag, "vlan-sec", "", 0, "secondary user vlan")
-	connectionsCreateCmd.Flags().StringVarP(&createL2SellerConSellerProfileUUID, "seller-uuid", "", "", "seller profile uuid (destination UUID)")
-	connectionsCreateCmd.Flags().StringVarP(&createL2SellerConSellerRegion, "seller-region", "", "", "seller destination region (ex. AWS: eu-west-1)")
-	connectionsCreateCmd.Flags().StringVarP(&createL2SellerConSellerMetroCode, "seller-metro", "", "", "seller destination metro code (ex.: LD)")
-	connectionsCreateCmd.Flags().Int64VarP(&createL2SellerConSpeed, "speed", "", 0, "connection speed (must be by 50 for MB ex.: 50, 100, 200, 500)")
-	connectionsCreateCmd.Flags().StringVarP(&createL2SellerConSpeedUnit, "speed-unit", "", "", "connection speed unit MB, GB")
-	connectionsCreateCmd.Flags().StringVarP(&createL2SellerConAuthorizationKey, "auth-key", "", "", "service authorization key (in AWS case use AWS Account ID)")
-	connectionsCreateCmd.Flags().StringVarP(&createL2SellerConNotificationsEmail, "notifications-email", "", "", "email for notifications")
-	connectionsCreateCmd.Flags().StringVarP(&createL2SellerConNamedTag, "named-tag", "", "", "primary ZSide Vlan CTag")
+	connectionsCreateL2Cmd.Flags().BoolVarP(&createL2CSP, "cloud", "c", false, "connect to a public cloud provider ex.: Azure, AWS, Google")
+	connectionsCreateL2Cmd.Flags().StringVarP(&createL2ConAuthorizationKey, "auth-key", "", "", "service authorization key (in AWS case use AWS Account ID)")
+	connectionsCreateL2Cmd.Flags().StringVarP(&createL2ConNotificationsEmail, "notifications-email", "", "", "email for notifications")
+	connectionsCreateL2Cmd.Flags().StringVarP(&createL2ConNamedTag, "named-tag", "", "", "Private, Public, Microsoft, Manual (Microsoft requires special authorization, Manual forces stag)")
 
-	connectionsCreateCmd.MarkFlagRequired("name")
-	connectionsCreateCmd.MarkFlagRequired("port-uuid")
-	connectionsCreateCmd.MarkFlagRequired("vlan")
-	connectionsCreateCmd.MarkFlagRequired("seller-uuid")
-	connectionsCreateCmd.MarkFlagRequired("seller-region")
-	connectionsCreateCmd.MarkFlagRequired("seller-metro")
-	connectionsCreateCmd.MarkFlagRequired("speed")
-	connectionsCreateCmd.MarkFlagRequired("speed-unit")
-	connectionsCreateCmd.MarkFlagRequired("seller-region")
-	connectionsCreateCmd.MarkFlagRequired("auth-key")
-	connectionsCreateCmd.MarkFlagRequired("notifications-email")
+	connectionsCreateL2Cmd.Flags().StringVarP(&createL2ConPrimaryName, "name", "n", "", "name for the new connection")
+	connectionsCreateL2Cmd.Flags().StringVarP(&createL2ConSecondaryName, "sec-name", "", "", "name for the secondary connection")
+
+	connectionsCreateL2Cmd.Flags().StringVarP(&createL2ConPrimaryPortUUID, "port-uuid", "", "", "user port uuid")
+	connectionsCreateL2Cmd.Flags().Int64VarP(&createL2ConPrimaryVlanSTag, "port-stag", "", 0, "S-Tag/Outer-tag of the primary port (vlan id for Dot1Q)")
+	connectionsCreateL2Cmd.Flags().StringVarP(&createL2ConPrimaryVlanCTag, "port-ctag", "", "", "C-Tag/Inner-tag of the primary port (customer vlan id for QinQ)")
+
+	connectionsCreateL2Cmd.Flags().StringVarP(&createL2ConPrimaryZSidePortUUID, "port-zside-uuid", "", "", "Z-side (remote) user port uuid")
+	connectionsCreateL2Cmd.Flags().Int64VarP(&createL2ConPrimaryZSideVlanSTag, "port-zside-stag", "", 0, "Z-side (remote) S-Tag/Outer-tag of the primary port (vlan id for Dot1Q)")
+	connectionsCreateL2Cmd.Flags().StringVarP(&createL2ConPrimaryZSideVlanCTag, "port-zside-ctag", "", "", "Z-side (remote) C-Tag/Inner-tag of the primary port (customer vlan id for QinQ)")
+
+	connectionsCreateL2Cmd.Flags().StringVarP(&createL2ConSecondaryPortUUID, "sec-port-uuid", "", "", "Z-side (remote) secondary user port uuid")
+	connectionsCreateL2Cmd.Flags().Int64VarP(&createL2ConSecondaryVlanSTag, "sec-port-stag", "", 0, "Z-side (remote) S-Tag/Outer-tag of the secondary port (vlan id for Dot1Q)")
+	connectionsCreateL2Cmd.Flags().StringVarP(&createL2ConSecondaryVlanCTag, "sec-port-ctag", "", "", "Z-side (remote) C-Tag/Inner-tag of the primary port (customer vlan id for QinQ)")
+
+	connectionsCreateL2Cmd.Flags().StringVarP(&createL2ConSecondaryZSidePortUUID, "sec-port-zside-uuid", "", "", "user port uuid")
+	connectionsCreateL2Cmd.Flags().Int64VarP(&createL2ConSecondaryZSideVlanSTag, "sec-port-zside-stag", "", 0, "S-Tag/Outer-tag of the primary port (vlan id for Dot1Q)")
+	connectionsCreateL2Cmd.Flags().Int64VarP(&createL2ConSecondaryZSideVlanCTag, "sec-port-zside-ctag", "", 0, "C-Tag/Inner-tag of the primary port (customer vlan id for QinQ)")
+
+	connectionsCreateL2Cmd.Flags().StringVarP(&createL2ConSellerProfileUUID, "seller-uuid", "", "", "seller profile uuid (destination UUID)")
+	connectionsCreateL2Cmd.Flags().StringVarP(&createL2ConSellerRegion, "seller-region", "", "", "seller destination region (ex. AWS: eu-west-1)")
+	connectionsCreateL2Cmd.Flags().StringVarP(&createL2ConSellerMetroCode, "seller-metro", "", "", "seller destination metro code (ex.: LD)")
+
+	connectionsCreateL2Cmd.Flags().Int64VarP(&createL2ConSpeed, "speed", "", 0, "connection speed (must be by 50 for MB ex.: 50, 100, 200, 500)")
+	connectionsCreateL2Cmd.Flags().StringVarP(&createL2ConSpeedUnit, "speed-unit", "", "", "connection speed unit MB, GB")
+
+	connectionsCreateL2Cmd.MarkFlagRequired("name")
+	connectionsCreateL2Cmd.MarkFlagRequired("port-uuid")
+	connectionsCreateL2Cmd.MarkFlagRequired("speed")
+	connectionsCreateL2Cmd.MarkFlagRequired("speed-unit")
+
 }
 
 func connectionsListCommand(cmd *cobra.Command, args []string) {
@@ -180,6 +208,76 @@ func connectionsDeleteByUUIDCommand(cmd *cobra.Command, args []string) {
 	}
 }
 
+// connectionsCreateCloudCommand helper to assist in the creation of L2 connections to Cloud CSP's or other sellers in platform Equinix
+func connectionsCreateCloudCommand(cmd *cobra.Command, args []string) {
+	// required params
+	// sellerService UUID - uuid to connect to
+	// speed 50 mb
+	// name (connection)
+	// authorizationKey (AWS accountid as an example)
+	// vlanSTag - vlan source tag
+	// notifications email
+
+	params := ConnectionsAPIClient.NewCreateL2ConnectionParams()
+
+	if createL2ConAuthorizationKey == "" {
+		log.Fatal("Authorization key required for cloud connection")
+	}
+	params.AuthorizationKey = createL2ConAuthorizationKey // aws account id in this case
+
+	params.PrimaryName = createL2ConPrimaryName
+
+	params.PrimaryPortUUID = createL2ConPrimaryPortUUID
+
+	if createL2ConPrimaryVlanSTag == 0 {
+		log.Fatal("Primary Vlan not specified (S-Tag)")
+	}
+
+	params.PrimaryVlanSTag = createL2ConPrimaryVlanSTag
+
+	// secondary connection
+	if createL2ConSecondaryName != "" {
+		params.SecondaryName = createL2ConSecondaryName
+	}
+	if createL2ConSecondaryPortUUID != "" {
+		params.SecondaryPortUUID = createL2ConSecondaryPortUUID
+	}
+
+	if createL2ConNamedTag != "" {
+		params.NamedTag = createL2ConNamedTag
+	}
+	if createL2ConSecondaryVlanSTag != 0 {
+		params.SecondaryVlanSTag = createL2ConSecondaryVlanSTag
+	}
+	if createL2ConSpeed == 0 {
+		log.Fatal("Connection speed not specified")
+	}
+
+	params.Speed = createL2ConSpeed
+	params.SpeedUnit = createL2ConSpeedUnit
+	params.Notifications = []string{createL2ConNotificationsEmail}
+	params.SellerRegion = createL2ConSellerRegion       //"eu-west-1" // get from seller? this should be AWS
+	params.SellerMetroCode = createL2ConSellerMetroCode // provided by customer
+
+	params.ProfileUUID = createL2ConSellerProfileUUID
+
+	conn, err := ConnectionsAPIClient.CreateL2ConnectionToSellerProfile(params, SellerServicesAPIClient)
+	if err != nil {
+		switch t := err.(type) {
+		case *apiconnections.CreateConnectionUsingPOSTBadRequest:
+			for _, er := range t.Payload {
+				log.Fatalf("Error %s with message %s\n", er.ErrorCode, er.ErrorMessage)
+			}
+		default:
+			log.Fatalf("Error creating connection: %s\n", err.Error())
+		}
+	}
+	fmt.Printf("Connection %s succesfully created\n", conn.Payload.PrimaryConnectionID)
+
+	fmt.Printf("Connection %s succesfully created\n", conn.Payload.PrimaryConnectionID)
+}
+
+// connectionsCreateCommand creates a L2 connection
 func connectionsCreateCommand(cmd *cobra.Command, args []string) {
 	// required params
 	// sellerService UUID - uuid to connect to
@@ -189,55 +287,75 @@ func connectionsCreateCommand(cmd *cobra.Command, args []string) {
 	// vlanSTag - vlan source tag
 	// notifications email
 
-	params := ConnectionsAPIClient.NewCreateL2SellerConnectionParams()
-
-	params.PrimaryName = createL2SellerConPrimaryName
-	if createL2SellerConSecondaryName != "" {
-		params.SecondaryName = createL2SellerConSecondaryName
+	if createL2CSP {
+		connectionsCreateCloudCommand(cmd, args)
+		return
 	}
 
-	params.PrimaryPortUUID = createL2SellerConPrimaryPortUUID
-	if createL2SellerConSecondaryPortUUID != "" {
-		params.SecondaryPortUUID = createL2SellerConSecondaryPortUUID
+	params := ConnectionsAPIClient.NewCreateL2ConnectionParams()
+
+	if createL2ConNamedTag != "" {
+		params.NamedTag = createL2ConNamedTag
 	}
 
-	if createL2SellerConPrimaryVlanSTag == 0 {
-		panic(createL2SellerConPrimaryVlanSTag)
+	if createL2ConAuthorizationKey != "" {
+		params.AuthorizationKey = createL2ConAuthorizationKey
 	}
-	params.PrimaryVlanSTag = createL2SellerConPrimaryVlanSTag
-	if createL2SellerConSecondaryVlanSTag != 0 {
-		params.SecondaryVlanSTag = createL2SellerConSecondaryVlanSTag
-	}
+	params.PrimaryName = createL2ConPrimaryName
+	params.PrimaryPortUUID = createL2ConPrimaryPortUUID
 
-	if createL2SellerConNamedTag != "" {
-		params.NamedTag = createL2SellerConNamedTag
-	}
+	params.PrimaryVlanSTag = createL2ConPrimaryVlanSTag
+	params.PrimaryVlanCTag = createL2ConPrimaryVlanCTag
 
-	if createL2SellerConSpeed == 0 {
-		panic(createL2SellerConSpeed)
+	if createL2ConSpeed == 0 {
+		log.Fatal("Connection speed not specified")
 	}
 
-	params.Speed = createL2SellerConSpeed
-	params.SpeedUnit = createL2SellerConSpeedUnit
-	params.Notifications = []string{createL2SellerConNotificationsEmail}
-	params.SellerRegion = createL2SellerConSellerRegion         //"eu-west-1" // get from seller? this should be AWS
-	params.SellerMetroCode = createL2SellerConSellerMetroCode   // provided by customer
-	params.AuthorizationKey = createL2SellerConAuthorizationKey // aws account id in this case
+	// Primary port zside
+	if createL2ConPrimaryZSidePortUUID != "" {
+		params.PrimaryZSidePortUUID = createL2ConPrimaryZSidePortUUID
+		params.PrimaryVlanCTag = createL2ConPrimaryZSideVlanCTag
+		params.PrimaryVlanSTag = createL2ConPrimaryZSideVlanSTag
+	}
 
-	params.ProfileUUID = createL2SellerConSellerProfileUUID
+	// secondary port
+	if createL2ConSecondaryName != "" {
+		params.SecondaryName = createL2ConSecondaryName
+	}
+	if createL2ConSecondaryPortUUID != "" {
+		params.SecondaryPortUUID = createL2ConSecondaryPortUUID
+		params.SecondaryVlanSTag = createL2ConSecondaryVlanSTag
+		params.SecondaryVlanCTag = createL2ConSecondaryVlanCTag
+	}
+	if createL2ConSecondaryZSidePortUUID != "" {
+		params.SecondaryZSidePortUUID = createL2ConSecondaryZSidePortUUID
+		params.SecondaryZSideVlanCTag = createL2ConSecondaryZSideVlanCTag
+		params.SecondaryZSideVlanSTag = createL2ConSecondaryZSideVlanSTag
+	}
 
-	conn, err := ConnectionsAPIClient.CreateL2ConnectionSellerProfile(params, SellerServicesAPIClient)
+	if purchaseOrderNumber != "" {
+		params.PurchaseOrderNumber = purchaseOrderNumber
+	}
+
+	params.Speed = createL2ConSpeed
+	params.SpeedUnit = createL2ConSpeedUnit
+	params.Notifications = []string{createL2ConNotificationsEmail}
+	params.SellerRegion = createL2ConSellerRegion
+	params.SellerMetroCode = createL2ConSellerMetroCode
+
+	// we're creating a connection to a seller profile
+
+	conn, err := ConnectionsAPIClient.CreateL2Connection(params)
 	if err != nil {
 		switch t := err.(type) {
 		case *apiconnections.CreateConnectionUsingPOSTBadRequest:
 			for _, er := range t.Payload {
-				fmt.Printf("Error %s with message %s\n", er.ErrorCode, er.ErrorMessage)
+				log.Fatalf("Error %s with message %s\n", er.ErrorCode, er.ErrorMessage)
 			}
 		default:
-			fmt.Printf("Error creating connection: %s\n", err.Error())
+			log.Fatalf("Error creating connection: %s\n", err.Error())
 		}
-		os.Exit(1)
 	}
-
 	fmt.Printf("Connection %s succesfully created\n", conn.Payload.PrimaryConnectionID)
+
 }

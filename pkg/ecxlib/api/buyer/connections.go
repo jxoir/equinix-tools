@@ -23,7 +23,7 @@ type ConnectionsResponse struct {
 	PageSize       int64
 }
 
-type CreateL2SellerConnectionParams struct {
+type CreateL2ConnectionParams struct {
 	// authorization key
 	AuthorizationKey string `json:"authorizationKey,omitempty"`
 
@@ -134,8 +134,9 @@ func NewECXConnectionsAPI(equinixAPIClient *client.EquinixAPIClient) *ECXConnect
 	return &ECXConnectionsAPI{equinixAPIClient}
 }
 
-func (m *ECXConnectionsAPI) NewCreateL2SellerConnectionParams() *CreateL2SellerConnectionParams {
-	return &CreateL2SellerConnectionParams{}
+// NewCreateL2ConnectionParams returns initialized struct
+func (m *ECXConnectionsAPI) NewCreateL2ConnectionParams() *CreateL2ConnectionParams {
+	return &CreateL2ConnectionParams{}
 }
 
 // GetAllBuyerConnections get all buyer connections (traversing pagination)
@@ -248,7 +249,7 @@ func (m *ECXConnectionsAPI) GetByUUID(uuid string) (*apiconnections.GetConnectio
 		return connectionOK, nil
 	}
 
-	return nil, err
+	return nil, nil
 
 }
 
@@ -281,8 +282,8 @@ func (m *ECXConnectionsAPI) DeleteByUUID(uuid string) (*apiconnections.DeleteCon
 
 }
 
-// CreateL2Connection creates an L2 connection to a specific service profile
-func (m *ECXConnectionsAPI) CreateL2ConnectionSellerProfile(params *CreateL2SellerConnectionParams, ecxseller *ECXSellerServicesAPI) (*apiconnections.CreateConnectionUsingPOSTOK, error) {
+// CreateL2ConnectionToSellerProfile creates an L2 connection to a specific service seller profile, requires ECXSellerServicesAPI
+func (m *ECXConnectionsAPI) CreateL2ConnectionToSellerProfile(params *CreateL2ConnectionParams, ecxseller *ECXSellerServicesAPI) (*apiconnections.CreateConnectionUsingPOSTOK, error) {
 	if params == nil {
 		return nil, errors.New("Parameters to create L2 connection not provided")
 	}
@@ -358,6 +359,64 @@ func (m *ECXConnectionsAPI) CreateL2ConnectionSellerProfile(params *CreateL2Sell
 		SellerMetroCode:   params.SellerMetroCode,  // provided by customer
 		AuthorizationKey:  params.AuthorizationKey, // aws account id in this case
 		ProfileUUID:       seller.Payload.UUID,
+		NamedTag:          params.NamedTag,
+	}
+
+	ecxAPIParams.Request = request
+
+	token, err := m.GetToken()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	connOk, err := m.Buyer.Connections.CreateConnectionUsingPOST(ecxAPIParams, token)
+	if err != nil {
+		// TODO create an APIError response interface and struct with a getmessages method
+		/**
+		switch t := err.(type) {
+		case *apiconnections.CreateConnectionUsingPOSTBadRequest:
+			return nil, errors.New(t.Payload)
+		default:
+			return nil, err
+		}**/
+		return nil, err
+	}
+
+	return connOk, nil
+
+}
+
+// CreateL2Connection creates an L2 connection to a specific service profile
+func (m *ECXConnectionsAPI) CreateL2Connection(params *CreateL2ConnectionParams) (*apiconnections.CreateConnectionUsingPOSTOK, error) {
+	if params == nil {
+		return nil, errors.New("Parameters to create L2 connection not provided")
+	}
+
+	if params.ProfileUUID == "" {
+		return nil, errors.New("must provide seller profile UUID")
+	}
+
+	if params.PrimaryPortUUID == "" {
+		return nil, errors.New("must provide a port id for the connection")
+	}
+
+	// seller.Payload.IntegrationID
+
+	ecxAPIParams := apiconnections.NewCreateConnectionUsingPOSTParams()
+	request := &models.PostConnectionRequest{
+		PrimaryName:       params.PrimaryName,
+		PrimaryPortUUID:   params.PrimaryPortUUID,
+		PrimaryVlanSTag:   params.PrimaryVlanSTag,
+		SecondaryName:     params.SecondaryName,
+		SecondaryPortUUID: params.SecondaryPortUUID,
+		SecondaryVlanSTag: params.SecondaryVlanSTag,
+		Speed:             params.Speed,
+		SpeedUnit:         params.SpeedUnit,
+		Notifications:     params.Notifications,
+		SellerRegion:      params.SellerRegion,     //"eu-west-1" // get from seller? this should be AWS
+		SellerMetroCode:   params.SellerMetroCode,  // provided by customer
+		AuthorizationKey:  params.AuthorizationKey, // aws account id in this case
+		ProfileUUID:       params.ProfileUUID,
 		NamedTag:          params.NamedTag,
 	}
 
