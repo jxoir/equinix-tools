@@ -342,15 +342,14 @@ func connectionsCreateCommand(cmd *cobra.Command, args []string) {
 	params.Notifications = []string{createL2ConNotificationsEmail}
 	params.SellerRegion = createL2ConSellerRegion
 	params.SellerMetroCode = createL2ConSellerMetroCode
-
-	// we're creating a connection to a seller profile
+	params.ProfileUUID = createL2ConSellerProfileUUID
 
 	conn, err := ConnectionsAPIClient.CreateL2Connection(params)
 	if err != nil {
 		switch t := err.(type) {
 		case *apiconnections.CreateConnectionUsingPOSTBadRequest:
 			for _, er := range t.Payload {
-				log.Fatalf("Error %s with message %s\n", er.ErrorCode, er.ErrorMessage)
+				log.Fatalf("Error %s with message %s - %s - %s\n", er.ErrorCode, er.ErrorMessage, er.Property, er.MoreInfo)
 			}
 		default:
 			log.Fatalf("Error creating connection: %s\n", err.Error())
