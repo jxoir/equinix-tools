@@ -400,6 +400,9 @@ func (m *ECXConnectionsAPI) CreateL2Connection(params *CreateL2ConnectionParams)
 		return nil, errors.New("must provide a port id for the connection")
 	}
 
+	if params.PrimaryVlanSTag == 0 {
+		return nil, errors.New("Primary Vlan S-Tag required")
+	}
 	// seller.Payload.IntegrationID
 
 	ecxAPIParams := apiconnections.NewCreateConnectionUsingPOSTParams()
